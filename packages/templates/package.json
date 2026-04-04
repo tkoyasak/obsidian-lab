@@ -1,18 +1,7 @@
 {
   "name": "templates",
   "private": true,
-  "type": "module",
   "scripts": {
-    "validate": "bun run ./scripts/validate.ts",
-    "format": "oxfmt",
-    "lint": "oxlint --type-aware"
-  },
-  "devDependencies": {
-    "@types/node": "catalog:",
-    "oxfmt": "catalog:",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:",
-    "valibot": "^1.2.0"
+    "eval": "pkl eval -f json ./pkl/web-clipper/* -o ./templates/web-clipper/%{moduleName}.json"
   }
 }

@@ -1,0 +1,30 @@
+module WebClipper
+
+fixed schemaVersion: String = "0.1.0"
+
+name: String
+
+behavior: "create"
+  | "append-specific"
+  | "append-daily"
+  | "prepend-specific"
+  | "prepend-daily"
+  | "overwrite"
+
+noteContentFormat: String
+
+properties: List<Property>
+
+class Property {
+  name: String
+  value: String
+  type: "checkbox" | "date" | "datetime" | "multitext" | "number" | "text"
+}
+
+triggers: List<String>
+
+noteNameFormat: String
+
+path: String
+
+vault: String?

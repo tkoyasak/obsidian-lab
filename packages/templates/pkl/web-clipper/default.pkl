@@ -1,0 +1,73 @@
+amends "../WebClipper.pkl"
+
+name = "default"
+
+behavior = "create"
+
+noteContentFormat =
+  """
+  <%*
+    await tp.user.unique_note(tp)
+  -%>
+
+  {{content|replace:("/、/g":"，","/。/g":"．")}}
+
+  """
+
+properties =
+  List(
+    new Property {
+      name = "id"
+      value = ""
+      type = "text"
+    },
+    new Property {
+      name = "created"
+      value = #"{{date|date:\"YYYY-MM-DD\"}}"#
+      type = "date"
+    },
+    new Property {
+      name = "modified"
+      value = #"{{date|date:\"YYYY-MM-DD\"}}"#
+      type = "date"
+    },
+    new Property {
+      name = "title"
+      value = "{{title}}"
+      type = "text"
+    },
+    new Property {
+      name = "source"
+      value = "{{url}}"
+      type = "text"
+    },
+    new Property {
+      name = "published"
+      value = #"{{published|date:\"YYYY-MM-DD\"}}"#
+      type = "date"
+    },
+    new Property {
+      name = "authors"
+      value = "{{author}}"
+      type = "multitext"
+    },
+    new Property {
+      name = "categories"
+      value = #"[\"clippings\"]"#
+      type = "multitext"
+    },
+    new Property {
+      name = "genres"
+      value = ""
+      type = "multitext"
+    },
+    new Property {
+      name = "tags"
+      value = ""
+      type = "multitext"
+    },
+  )
+
+noteNameFormat = "{{title}}"
+
+path = "11-clippings"
