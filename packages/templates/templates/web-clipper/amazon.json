@@ -60,7 +60,9 @@
       "type": "multitext"
     }
   ],
-  "triggers": ["https://www.amazon.co.jp/"],
+  "triggers": [
+    "https://www.amazon.co.jp/"
+  ],
   "noteNameFormat": "『{{selector:#productTitle}}』",
-  "path": "00-references"
+  "path": "10-references"
 }

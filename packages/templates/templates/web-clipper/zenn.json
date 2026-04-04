@@ -55,7 +55,9 @@
       "type": "multitext"
     }
   ],
-  "triggers": ["https://zenn.dev/"],
+  "triggers": [
+    "https://zenn.dev/"
+  ],
   "noteNameFormat": "{{title}}",
-  "path": "01-clippings"
+  "path": "11-clippings"
 }
