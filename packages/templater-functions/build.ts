@@ -2,28 +2,27 @@ import { builtinModules } from "node:module";
 import path from "node:path";
 import process from "node:process";
 
-const srcsDir = path.join(import.meta.dir, "../srcs");
-const distDir = path.join(import.meta.dir, "../dist");
+const srcDir = path.join(import.meta.dir, "./src");
+const outDir = path.join(import.meta.dir, "../../dist/templater");
 
 const glob = new Bun.Glob("*.ts");
 const entries: string[] = [];
 
-for await (const file of glob.scan({ cwd: srcsDir })) {
-  entries.push(path.join(srcsDir, file));
+console.log(`Scanning...`);
+for await (const file of glob.scan({ cwd: srcDir })) {
+  const entry = path.join(srcDir, file);
+  console.log(`  + ${entry}`);
+  entries.push(entry);
 }
 
-console.log(`Found ${entries.length} entry files:`);
-entries.forEach((entry) => console.log(`  - ${entry}`));
-
+console.log(`\nBuilding...`);
 for (const entry of entries) {
   const fileName = entry.split("/").pop()!.replace(".ts", ".js");
-  const outfile = path.join(distDir, fileName);
-
-  console.log(`\nBuilding ${fileName}...`);
+  const outfile = path.join(outDir, fileName);
 
   const result = await Bun.build({
     entrypoints: [entry],
-    outdir: distDir,
+    outdir: outDir,
     format: "cjs",
     target: "node",
     minify: true,
@@ -38,7 +37,7 @@ for (const entry of entries) {
     process.exit(1);
   }
 
-  console.log(`✓ Built ${outfile}`);
+  console.log(`  ✓ ${outfile}`);
 }
 
-console.log(`\n✓ Build completed successfully!`);
+console.log(`\nDone!`);

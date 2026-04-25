@@ -1,0 +1,89 @@
+amends "@obsidian.webClipper/Template.pkl"
+
+name = "X (Twitter) Post"
+
+behavior = "create"
+
+noteContentFormat =
+  """
+  <%*
+     await tp.user.unique_note(tp)
+  -%>
+
+  ![X (Twitter) Post (embed)]({{url}})
+
+  ## Post
+
+  {{content}}
+
+  """
+
+properties =
+  List(
+    new Property {
+      name = "id"
+      value = ""
+      type = "text"
+    },
+    new Property {
+      name = "created"
+      value = "{{date|date:\"YYYY-MM-DD\"}}"
+      type = "date"
+    },
+    new Property {
+      name = "modified"
+      value = "{{date|date:\"YYYY-MM-DD\"}}"
+      type = "date"
+    },
+    new Property {
+      name = "title"
+      value = ""
+      type = "text"
+    },
+    new Property {
+      name = "url"
+      value = "{{url}}"
+      type = "text"
+    },
+    new Property {
+      name = "author"
+      value = "{{selector:div[data-testid=\"User-Name\"] span|first}}"
+      type = "multitext"
+    },
+    new Property {
+      name = "handle"
+      value = #"{{url|split:\"/\"|slice:3,-2}}"#
+      type = "text"
+    },
+    new Property {
+      name = "profile"
+      value = #"https://x.com/@{{url|split:\"/\"|slice:3,-2}}"#
+      type = "text"
+    },
+    new Property {
+      name = "image"
+      value = "{{selector:img[alt=\"画像\"]?src|first}}"
+      type = "text"
+    },
+    new Property {
+      name = "published"
+      value = "{{published}}"
+      type = "text"
+    },
+    new Property {
+      name = "categories"
+      value = #"[[clippings]], [[x-post]]"#
+      type = "multitext"
+    },
+    new Property {
+      name = "tags"
+      value = ""
+      type = "multitext"
+    },
+  )
+
+triggers = List(#"/^https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/\d+$/"#)
+
+noteNameFormat = "{{title}} on X - {{published|date:YYYY-MM-DD}}"
+
+path = "Clippings"

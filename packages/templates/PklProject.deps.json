@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "resolvedDependencies": {
+    "package://pkg.pkl-lang.org/github.com/tkoyasak/pkl-jar/obsidian.webClipper@0": {
+      "type": "remote",
+      "uri": "projectpackage://pkg.pkl-lang.org/github.com/tkoyasak/pkl-jar/obsidian.webClipper@0.0.0",
+      "checksums": {
+        "sha256": "d9985621eefb5c9940e8da4071bb7b007f445f1dadfc2af4b00f142c7d7abd96"
+      }
+    }
+  }
+}

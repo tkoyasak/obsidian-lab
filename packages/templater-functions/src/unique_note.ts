@@ -2,7 +2,7 @@ import { ulid } from "ulid";
 
 const unique_note = async (tp: Tp) => {
   const id = ulid();
-  const title = tp.file.title;
+  const { title } = tp.file;
   await tp.file.rename(id);
 
   tp.hooks.on_all_templates_executed(async () => {

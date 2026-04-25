@@ -1,4 +1,0 @@
-# See at https://bun.sh/docs/runtime/bunfig
-
-[install]
-minimumReleaseAge = 604800 # 7 days

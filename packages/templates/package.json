@@ -2,6 +2,6 @@
   "name": "templates",
   "private": true,
   "scripts": {
-    "eval": "pkl eval -f json ./pkl/web-clipper/* -o ./templates/web-clipper/%{moduleName}.json"
+    "eval:web-clipper": "pkl eval -f json ./web-clipper/* -o ../../dist/web-clipper/%{moduleName}.json"
   }
 }

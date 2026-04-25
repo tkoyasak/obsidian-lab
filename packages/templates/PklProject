@@ -1,0 +1,7 @@
+amends "pkl:Project"
+
+dependencies {
+  ["obsidian.webClipper"] {
+    uri = "package://pkg.pkl-lang.org/github.com/tkoyasak/pkl-jar/obsidian.webClipper@0.0.0"
+  }
+}

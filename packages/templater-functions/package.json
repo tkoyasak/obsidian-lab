@@ -3,21 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run ./scripts/build.ts",
-    "deploy": "bun run ./scripts/deploy.ts",
-    "format": "oxfmt",
-    "lint": "oxlint --type-aware"
+    "build": "bun run ./build.ts"
   },
   "dependencies": {
-    "ulid": "^3.0.2"
+    "ulid": "3.0.2"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "obsidian": "catalog:",
-    "oxfmt": "catalog:",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
     "typescript": "catalog:"
   }
 }

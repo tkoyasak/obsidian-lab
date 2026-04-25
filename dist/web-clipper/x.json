@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "0.1.0",
+  "name": "X (Twitter) Post",
+  "behavior": "create",
+  "noteContentFormat": "<%*\n   await tp.user.unique_note(tp)\n-%>\n\n![X (Twitter) Post (embed)]({{url}})\n\n## Post\n\n{{content}}\n",
+  "properties": [
+    {
+      "name": "id",
+      "value": "",
+      "type": "text"
+    },
+    {
+      "name": "created",
+      "value": "{{date|date:\"YYYY-MM-DD\"}}",
+      "type": "date"
+    },
+    {
+      "name": "modified",
+      "value": "{{date|date:\"YYYY-MM-DD\"}}",
+      "type": "date"
+    },
+    {
+      "name": "title",
+      "value": "",
+      "type": "text"
+    },
+    {
+      "name": "url",
+      "value": "{{url}}",
+      "type": "text"
+    },
+    {
+      "name": "author",
+      "value": "{{selector:div[data-testid=\"User-Name\"] span|first}}",
+      "type": "multitext"
+    },
+    {
+      "name": "handle",
+      "value": "{{url|split:\\\"/\\\"|slice:3,-2}}",
+      "type": "text"
+    },
+    {
+      "name": "profile",
+      "value": "https://x.com/@{{url|split:\\\"/\\\"|slice:3,-2}}",
+      "type": "text"
+    },
+    {
+      "name": "image",
+      "value": "{{selector:img[alt=\"画像\"]?src|first}}",
+      "type": "text"
+    },
+    {
+      "name": "published",
+      "value": "{{published}}",
+      "type": "text"
+    },
+    {
+      "name": "categories",
+      "value": "[[clippings]], [[x-post]]",
+      "type": "multitext"
+    },
+    {
+      "name": "tags",
+      "value": "",
+      "type": "multitext"
+    }
+  ],
+  "triggers": ["/^https:\\/\\/x\\.com\\/[A-Za-z0-9_]+\\/status\\/\\d+$/"],
+  "noteNameFormat": "{{title}} on X - {{published|date:YYYY-MM-DD}}",
+  "path": "Clippings"
+}
