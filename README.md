@@ -1,1 +1,1 @@
-# obsidian-monorepo
+# obsidian-lab
