@@ -12,10 +12,6 @@
     },
     "packages/css-snippets": {
       "name": "css-snippets",
-      "devDependencies": {
-        "@types/bun": "catalog:",
-        "@types/node": "catalog:",
-      },
     },
     "packages/templater-functions": {
       "name": "templater-functions",

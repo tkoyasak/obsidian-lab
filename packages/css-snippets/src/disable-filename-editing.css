@@ -1,0 +1,11 @@
+.view-header .view-header-title {
+  pointer-events: auto;
+  user-select: all;
+  -webkit-user-modify: read-only;
+}
+
+.view-content .inline-title {
+  pointer-events: none;
+  user-select: all;
+  -webkit-user-modify: read-only;
+}
