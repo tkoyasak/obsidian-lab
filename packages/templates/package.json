@@ -1,7 +1,0 @@
-{
-  "name": "templates",
-  "private": true,
-  "scripts": {
-    "eval:web-clipper": "pkl eval -f json ./web-clipper/* -o ../../dist/web-clipper/%{moduleName}.json"
-  }
-}
