@@ -29,4 +29,6 @@ hooks = [
   { id = "cargo-test", name = "cargo test", entry = "cargo test --workspace", language = "system", types = [
     "rust",
   ], pass_filenames = false, priority = 30 },
+
+  { id = "pkl-format", name = "pkl format", entry = "pkl format -w .", language = "system", pass_filenames = false, priority = 10 },
 ]
