@@ -30,5 +30,5 @@ hooks = [
     "rust",
   ], pass_filenames = false, priority = 30 },
 
-  { id = "pkl-format", name = "pkl format", entry = "pkl format -w .", language = "system", pass_filenames = false, priority = 10 },
+  { id = "pkl-format", name = "pkl format", entry = "pkl format .", language = "system", pass_filenames = false, priority = 10 },
 ]
