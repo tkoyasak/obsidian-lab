@@ -2,12 +2,12 @@
   "schemaVersion": "0.1.0",
   "name": "X (Twitter) Post",
   "behavior": "create",
-  "noteContentFormat": "<%*\n   await tp.user.unique_note(tp)\n-%>\n\n![X (Twitter) Post (embed)]({{url}})\n\n## Post\n\n{{content}}\n",
+  "noteContentFormat": "\n![(embed)]({{url}})\n\n## Content\n\n{{content}}\n",
   "properties": [
     {
-      "name": "id",
-      "value": "",
-      "type": "text"
+      "name": "tags",
+      "value": "untagged",
+      "type": "multitext"
     },
     {
       "name": "created",
@@ -20,13 +20,43 @@
       "type": "date"
     },
     {
-      "name": "title",
-      "value": "",
+      "name": "content_id",
+      "value": "<% tp.user.ulid() %>",
       "type": "text"
+    },
+    {
+      "name": "visibility",
+      "value": "private",
+      "type": "text"
+    },
+    {
+      "name": "thumbnail",
+      "value": "{{selector:img[alt=\"画像\"]?src|first}}",
+      "type": "text"
+    },
+    {
+      "name": "description",
+      "value": "{{description}}",
+      "type": "text"
+    },
+    {
+      "name": "categories",
+      "value": "\"[[Clippings]]\", \"[[X (Twitter) Posts]]\"",
+      "type": "multitext"
     },
     {
       "name": "url",
       "value": "{{url}}",
+      "type": "text"
+    },
+    {
+      "name": "published",
+      "value": "{{published|date}}",
+      "type": "text"
+    },
+    {
+      "name": "title",
+      "value": "{{title}}",
       "type": "text"
     },
     {
@@ -41,31 +71,11 @@
     },
     {
       "name": "profile",
-      "value": "https://x.com/@{{url|split:\\\"/\\\"|slice:3,-2}}",
+      "value": "https://x.com/{{url|split:\\\"/\\\"|slice:3,-2}}",
       "type": "text"
-    },
-    {
-      "name": "image",
-      "value": "{{selector:img[alt=\"画像\"]?src|first}}",
-      "type": "text"
-    },
-    {
-      "name": "published",
-      "value": "{{published}}",
-      "type": "text"
-    },
-    {
-      "name": "categories",
-      "value": "[[clippings]], [[x-post]]",
-      "type": "multitext"
-    },
-    {
-      "name": "tags",
-      "value": "",
-      "type": "multitext"
     }
   ],
   "triggers": ["/^https:\\/\\/x\\.com\\/[A-Za-z0-9_]+\\/status\\/\\d+$/"],
-  "noteNameFormat": "{{title}} on X - {{published|date:YYYY-MM-DD}}",
+  "noteNameFormat": "{{title}} - {{published|date:\"YYYY-MM-DD\"}}",
   "path": "Clippings"
 }

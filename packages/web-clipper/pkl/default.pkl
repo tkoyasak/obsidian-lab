@@ -6,13 +6,8 @@ behavior = "create"
 
 noteContentFormat =
   """
-  <%*
-     await tp.user.unique_note(tp)
-  -%>
 
   ![(embed)]({{url}})
-
-  ## Content
 
   {{content}}
 
@@ -21,9 +16,9 @@ noteContentFormat =
 properties =
   List(
     new Property {
-      name = "id"
-      value = ""
-      type = "text"
+      name = "tags"
+      value = "untagged"
+      type = "multitext"
     },
     new Property {
       name = "created"
@@ -36,23 +31,33 @@ properties =
       type = "date"
     },
     new Property {
-      name = "title"
-      value = ""
+      name = "content_id"
+      value = "<% tp.user.ulid() %>"
       type = "text"
+    },
+    new Property {
+      name = "visibility"
+      value = "private"
+      type = "text"
+    },
+    new Property {
+      name = "thumbnail"
+      value = "{{image}}"
+      type = "text"
+    },
+    new Property {
+      name = "description"
+      value = "{{description}}"
+      type = "text"
+    },
+    new Property {
+      name = "categories"
+      value = "\"[[Clippings]]\""
+      type = "multitext"
     },
     new Property {
       name = "url"
       value = "{{url}}"
-      type = "text"
-    },
-    new Property {
-      name = "author"
-      value = "{{author}}"
-      type = "multitext"
-    },
-    new Property {
-      name = "image"
-      value = "{{selector:img[alt=\"画像\"]?src|first}}"
       type = "text"
     },
     new Property {
@@ -61,13 +66,13 @@ properties =
       type = "text"
     },
     new Property {
-      name = "categories"
-      value = #"[[clippings]]"#
-      type = "multitext"
+      name = "title"
+      value = "{{title}}"
+      type = "text"
     },
     new Property {
-      name = "tags"
-      value = ""
+      name = "author"
+      value = "{{author}}"
       type = "multitext"
     },
   )
