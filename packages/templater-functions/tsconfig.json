@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
     "lib": ["DOM", "ES2023"],
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "moduleDetection": "force",
-    "allowImportingTsExtensions": true,
+    "target": "ES2023",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "types": ["node", "bun"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
