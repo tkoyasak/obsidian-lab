@@ -3,6 +3,6 @@
   "private": true,
   "scripts": {
     "fmt": "pkl format -w .",
-    "eval": "pkl eval -f json ./pkl/* -o ../../dist/web-clipper/%{moduleName}.json"
+    "eval": "pkl eval -f json ./*.pkl -o ../../dist/web-clipper/%{moduleName}.json"
   }
 }

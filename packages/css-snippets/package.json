@@ -2,6 +2,6 @@
   "name": "css-snippets",
   "private": true,
   "scripts": {
-    "build": "cp ./src/* ../../dist/snippets/"
+    "build": "cp ./*.css ../../dist/snippets/"
   }
 }
