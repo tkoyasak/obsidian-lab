@@ -2,15 +2,10 @@ import { builtinModules } from "node:module";
 import path from "node:path";
 import process from "node:process";
 
-const srcDir = path.join(import.meta.dir, "./src");
+const targets = ["random.ts", "ulid.ts", "unique_note.ts"];
+const entries = targets.map((file) => path.join(import.meta.dir, file));
+
 const outDir = path.join(import.meta.dir, "../../dist/templater");
-
-const glob = new Bun.Glob("*.ts");
-const entries: string[] = [];
-
-for await (const file of glob.scan({ cwd: srcDir })) {
-  entries.push(path.join(srcDir, file));
-}
 
 const result = await Bun.build({
   entrypoints: entries,
