@@ -7,7 +7,7 @@ declare global {
    * This refers to the following versions.
    *
    * - https://github.com/obsidianmd/obsidian-api v1.11.0
-   * - https://github.com/SilentVoid13/Templater v2.16.4
+   * - https://github.com/SilentVoid13/Templater v2.20.0
    */
   interface Tp {
     /**
