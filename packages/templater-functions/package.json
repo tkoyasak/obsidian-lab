@@ -6,6 +6,7 @@
     "build": "bun run ./build.ts"
   },
   "dependencies": {
+    "@uzmoi/clockwork-base32": "1.1.0",
     "ulid": "3.0.2"
   },
   "devDependencies": {
