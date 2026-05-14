@@ -2,7 +2,7 @@ import { builtinModules } from "node:module";
 import path from "node:path";
 import process from "node:process";
 
-const targets = ["random.ts", "ulid.ts", "unique_note.ts"];
+const targets = ["random.ts", "tid.ts", "ulid.ts", "unique_note.ts"];
 const entries = targets.map((file) => path.join(import.meta.dir, file));
 
 const outDir = path.join(import.meta.dir, "../../dist/templater");

@@ -1,0 +1,1 @@
+var r=()=>{let t=BigInt(Date.now())*1000n,e=o();return s(t<<10n|e)},o=()=>{let t=new Uint8Array(2);crypto.getRandomValues(t);let e=new DataView(t.buffer);return BigInt(e.getUint16(0)&1023)};var s=(t)=>{let e="";for(let n=0;n<13;n++)e="234567abcdefghijklmnopqrstuvwxyz"[Number(t&31n)]+e,t>>=5n;return e};module.exports=r;
