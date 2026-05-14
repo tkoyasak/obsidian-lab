@@ -10,40 +10,7 @@ const random = (length: number = 16): string => {
   return encodeClockworkBase32(buf);
 };
 
-const encodeSymbols = [
-  "0",
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "A",
-  "B",
-  "C",
-  "D",
-  "E",
-  "F",
-  "G",
-  "H",
-  "J",
-  "K",
-  "M",
-  "N",
-  "P",
-  "Q",
-  "R",
-  "S",
-  "T",
-  "V",
-  "W",
-  "X",
-  "Y",
-  "Z",
-] as const;
+const CLOCKWORK_BASE32_CHARSET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 /**
  * Encode the entire sequence in Clockwork Base32.
@@ -62,12 +29,12 @@ const encodeClockworkBase32 = (u8array: Uint8Array): string => {
 
     while (offset >= 5) {
       offset -= 5;
-      result += encodeSymbols[(acc >> offset) & 0b11111];
+      result += CLOCKWORK_BASE32_CHARSET.charAt((acc >> offset) & 0x1f);
     }
   }
 
   if (offset > 0) {
-    result += encodeSymbols[(acc << (5 - offset)) & 0b11111];
+    result += CLOCKWORK_BASE32_CHARSET.charAt((acc << (5 - offset)) & 0x1f);
   }
 
   return result;
