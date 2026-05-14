@@ -7,7 +7,7 @@
 const random = (length: number = 16): string => {
   const buf = new Uint8Array(length);
   crypto.getRandomValues(buf);
-  return encode(buf);
+  return encodeClockworkBase32(buf);
 };
 
 const encodeSymbols = [
@@ -50,7 +50,7 @@ const encodeSymbols = [
  *
  * @see https://gist.github.com/szktty/228f85794e4187882a77734c89c384a8
  */
-const encode = (u8array: Uint8Array): string => {
+const encodeClockworkBase32 = (u8array: Uint8Array): string => {
   let result = "";
 
   let acc = 0;
