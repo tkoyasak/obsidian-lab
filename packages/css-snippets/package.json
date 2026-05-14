@@ -2,6 +2,8 @@
   "name": "css-snippets",
   "private": true,
   "scripts": {
-    "build": "cp ./*.css ../../dist/snippets/"
+    "build": "cp ./*.css ../../dist/snippets/",
+    "fmt": "bun oxfmt",
+    "lint": "bun oxlint"
   }
 }
