@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Required parameters:
 # @raycast.schemaVersion 1
-# @raycast.title Add Timeline to Daily Note
+# @raycast.title Append Timeline to Daily
 # @raycast.mode silent
 
 # Optional parameters:
@@ -15,7 +15,7 @@ set -euo pipefail
 # @raycast.author tkoyasak
 # @raycast.authorURL https://raycast.com/tkoyasak
 
-result=$(obsidian vault=vault quickadd choice="Timeline" input="$1")
+result=$(obsidian vault=vault quickadd choice="Append timeline to daily" input="$1")
 
 if ! echo "$result" | jq -e '.ok' > /dev/null 2>&1; then
   echo "$result"
