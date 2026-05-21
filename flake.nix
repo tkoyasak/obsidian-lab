@@ -42,10 +42,14 @@
           # (node_modules / crate cache), so they are meant to run at commit
           # time inside the devShell, not in a hermetic `nix flake check`.
           pre-commit.settings.hooks = {
+            # Whole-tree checks (pass_filenames = false): `always_run` so
+            # they fire on every commit rather than depending on which file
+            # types happen to be staged.
             gitleaks = {
               enable = true;
               entry = "${pkgs.gitleaks}/bin/gitleaks git --pre-commit --redact --staged";
               pass_filenames = false;
+              always_run = true;
             };
 
             # JS/TS (oxc) — whole-tree checks via bun scripts.
@@ -54,12 +58,14 @@
               name = "oxfmt";
               entry = "${pkgs.bun}/bin/bun run fmt -- --check";
               pass_filenames = false;
+              always_run = true;
             };
             oxlint = {
               enable = true;
               name = "oxlint";
               entry = "${pkgs.bun}/bin/bun run lint";
               pass_filenames = false;
+              always_run = true;
             };
 
             # Rust (cargo workspace) — only run when *.rs files are staged.
@@ -91,6 +97,7 @@
               name = "pkl format";
               entry = "${pkgs.pkl}/bin/pkl format .";
               pass_filenames = false;
+              always_run = true;
             };
           };
 
