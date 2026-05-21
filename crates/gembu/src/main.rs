@@ -152,3 +152,68 @@ fn extract_frontmatter(text: &str) -> Option<String> {
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extracts_block_between_delimiters() {
+        let md = "---\ntitle: x\ntags: []\n---\n# body\n";
+        assert_eq!(
+            extract_frontmatter(md).as_deref(),
+            Some("title: x\ntags: []\n")
+        );
+    }
+
+    #[test]
+    fn body_horizontal_rule_is_ignored() {
+        // A `---` in the body (after the closing one) must not be captured.
+        let md = "---\ntitle: x\n---\nintro\n\n---\n\nmore\n";
+        assert_eq!(extract_frontmatter(md).as_deref(), Some("title: x\n"));
+    }
+
+    #[test]
+    fn missing_leading_delimiter_is_none() {
+        assert_eq!(extract_frontmatter("# heading\n---\nx\n"), None);
+    }
+
+    #[test]
+    fn unterminated_block_is_none() {
+        assert_eq!(extract_frontmatter("---\ntitle: x\n"), None);
+    }
+
+    #[test]
+    fn empty_block_is_empty_string() {
+        assert_eq!(extract_frontmatter("---\n---\n").as_deref(), Some(""));
+    }
+
+    #[test]
+    fn compile_then_validate() {
+        let dir = std::env::temp_dir().join(format!("gembu-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let schema_path = dir.join("schema.json");
+        std::fs::write(
+            &schema_path,
+            r#"{"type":"object","required":["v"],"properties":{"v":{"enum":["a","b"]}}}"#,
+        )
+        .unwrap();
+
+        let validator = compile(&schema_path).unwrap();
+        assert_eq!(
+            validator
+                .iter_errors(&serde_json::json!({"v": "a"}))
+                .count(),
+            0
+        );
+        assert!(
+            validator
+                .iter_errors(&serde_json::json!({"v": "z"}))
+                .count()
+                > 0
+        );
+        assert!(validator.iter_errors(&serde_json::json!({})).count() > 0);
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+}
