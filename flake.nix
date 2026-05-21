@@ -101,6 +101,31 @@
             };
           };
 
+          # `gembu` — frontmatter validator CLI. Only the Rust files are
+          # brought into the build (no node_modules / packages/).
+          packages.gembu = pkgs.rustPlatform.buildRustPackage {
+            pname = "gembu";
+            version = "0.1.0";
+            src = pkgs.lib.fileset.toSource {
+              root = ./.;
+              fileset = pkgs.lib.fileset.unions [
+                ./Cargo.toml
+                ./Cargo.lock
+                ./crates
+              ];
+            };
+            cargoLock.lockFile = ./Cargo.lock;
+            cargoBuildFlags = [
+              "--package"
+              "gembu"
+            ];
+            cargoTestFlags = [
+              "--package"
+              "gembu"
+            ];
+          };
+          packages.default = config.packages.gembu;
+
           # `nix develop` / direnv — shellHook installs the git pre-commit hook.
           devShells.default = pkgs.mkShell {
             inputsFrom = [ config.pre-commit.devShell ];
