@@ -28,19 +28,21 @@ If `--config` is omitted, gembu looks for `.config/gembu.json` then
 
 ## Config
 
-JSON, an array of `rule` entries. `include` is a glob matched against each
+JSON, an array of `rules` entries. `include` is a glob matched against each
 input path; `schema` is a path resolved relative to the current working
 directory.
 
 ```json
 {
-  "rule": [
+  "rules": [
     { "include": "Daily/**/*.md", "schema": ".schema/daily.json" },
     { "include": "References/**/*.md", "schema": ".schema/references.json" },
     { "include": "Notes/**/*.md", "schema": ".schema/notes.json" }
   ]
 }
 ```
+
+`include` patterns use [fast-glob syntax](https://github.com/oxc-project/fast-glob#syntax).
 
 Schemas may use relative `$ref`s (e.g. `./base.json`); they resolve against the
 schema file's own location. `format` assertions are enabled.

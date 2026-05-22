@@ -1,15 +1,16 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use globset::{Glob, GlobSetBuilder};
+use fast_glob::glob_match;
 use jsonschema::Validator;
 use serde::Deserialize;
 
 /// Routing config: maps file globs to the schema that validates them.
 #[derive(Deserialize)]
 struct Config {
-    #[serde(default, rename = "rule")]
+    #[serde(default)]
     rules: Vec<Rule>,
 }
 
@@ -51,6 +52,10 @@ fn run() -> Result<bool, BoxError> {
                 println!("usage: gembu [--config <gembu.json>] <file>...");
                 return Ok(true);
             }
+            "--" => files.extend(args.by_ref().map(PathBuf::from)), // rest are files
+            other if other.starts_with('-') && other != "-" => {
+                return Err(format!("unknown option: {other}").into());
+            }
             _ => files.push(arg.into()),
         }
     }
@@ -74,36 +79,48 @@ fn run() -> Result<bool, BoxError> {
     };
     let config: Config = serde_json::from_str(&std::fs::read_to_string(&config_path)?)?;
 
-    // Build a matcher per rule; the first rule that matches a path wins.
-    let mut builder = GlobSetBuilder::new();
-    for rule in &config.rules {
-        builder.add(Glob::new(&rule.include)?);
-    }
-    let globset = builder.build()?;
-
     // Compile each schema once, lazily, keyed by its resolved path.
     let mut validators: HashMap<PathBuf, Validator> = HashMap::new();
     let mut ok = true;
 
     for file in &files {
-        let Some(idx) = globset.matches(file).into_iter().min() else {
+        // The first rule whose glob matches the path wins.
+        let path = file.to_string_lossy();
+        let Some(idx) = config
+            .rules
+            .iter()
+            .position(|rule| glob_match(rule.include.as_bytes(), path.as_bytes()))
+        else {
             continue; // no rule covers this path — not ours to validate
         };
         let schema_path = &config.rules[idx].schema;
 
-        if !validators.contains_key(schema_path) {
-            let validator = compile(schema_path)?;
-            validators.insert(schema_path.clone(), validator);
-        }
-        let validator = &validators[schema_path];
+        let validator = match validators.entry(schema_path.clone()) {
+            Entry::Occupied(e) => e.into_mut(),
+            Entry::Vacant(e) => e.insert(compile(schema_path)?),
+        };
 
-        let text = std::fs::read_to_string(file)?;
+        let text = match std::fs::read_to_string(file) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("{}: {e}", file.display());
+                ok = false;
+                continue;
+            }
+        };
         let Some(frontmatter) = extract_frontmatter(&text) else {
             eprintln!("{}: no YAML frontmatter found", file.display());
             ok = false;
             continue;
         };
-        let instance: serde_json::Value = yaml_serde::from_str(&frontmatter)?;
+        let instance: serde_json::Value = match yaml_serde::from_str(frontmatter) {
+            Ok(instance) => instance,
+            Err(e) => {
+                eprintln!("{}: invalid YAML frontmatter: {e}", file.display());
+                ok = false;
+                continue;
+            }
+        };
 
         let mut valid = true;
         for error in validator.iter_errors(&instance) {
@@ -136,19 +153,23 @@ fn compile(schema_path: &Path) -> Result<Validator, BoxError> {
 }
 
 /// Return the YAML frontmatter: the lines between a leading `---` and the
-/// next `---` on its own line. `None` if the file has no frontmatter block.
-fn extract_frontmatter(text: &str) -> Option<String> {
-    let mut lines = text.lines();
-    if lines.next()? != "---" {
-        return None;
-    }
-    let mut frontmatter = String::new();
-    for line in lines {
-        if line == "---" {
-            return Some(frontmatter);
+/// next `---` on its own line, borrowed from `text`. `None` if the file has no
+/// frontmatter block.
+fn extract_frontmatter(text: &str) -> Option<&str> {
+    let body = text
+        .strip_prefix("---\n")
+        .or_else(|| text.strip_prefix("---\r\n"))?;
+    let mut start = 0;
+    while start <= body.len() {
+        let rest = &body[start..];
+        let (line, next) = match rest.find('\n') {
+            Some(i) => (&rest[..i], start + i + 1),
+            None => (rest, body.len() + 1), // final line, no trailing newline
+        };
+        if line.strip_suffix('\r').unwrap_or(line) == "---" {
+            return Some(&body[..start]); // everything up to the closing `---`
         }
-        frontmatter.push_str(line);
-        frontmatter.push('\n');
+        start = next;
     }
     None
 }
@@ -160,17 +181,14 @@ mod tests {
     #[test]
     fn extracts_block_between_delimiters() {
         let md = "---\ntitle: x\ntags: []\n---\n# body\n";
-        assert_eq!(
-            extract_frontmatter(md).as_deref(),
-            Some("title: x\ntags: []\n")
-        );
+        assert_eq!(extract_frontmatter(md), Some("title: x\ntags: []\n"));
     }
 
     #[test]
     fn body_horizontal_rule_is_ignored() {
         // A `---` in the body (after the closing one) must not be captured.
         let md = "---\ntitle: x\n---\nintro\n\n---\n\nmore\n";
-        assert_eq!(extract_frontmatter(md).as_deref(), Some("title: x\n"));
+        assert_eq!(extract_frontmatter(md), Some("title: x\n"));
     }
 
     #[test]
@@ -185,7 +203,7 @@ mod tests {
 
     #[test]
     fn empty_block_is_empty_string() {
-        assert_eq!(extract_frontmatter("---\n---\n").as_deref(), Some(""));
+        assert_eq!(extract_frontmatter("---\n---\n"), Some(""));
     }
 
     #[test]
