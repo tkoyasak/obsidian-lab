@@ -158,24 +158,24 @@ fn compile(schema_path: &Path) -> Result<Validator, BoxError> {
 /// Read the YAML frontmatter: the lines between a leading `---` and the next
 /// `---` on its own line. Stops at the closing delimiter, so the file body is
 /// never read. `Ok(None)` if there is no frontmatter block.
-fn extract_frontmatter(reader: impl BufRead) -> std::io::Result<Option<String>> {
-    let mut lines = reader.lines();
-    let Some(first) = lines.next().transpose()? else {
-        return Ok(None); // empty file
-    };
-    if first != "---" {
+fn extract_frontmatter(mut reader: impl BufRead) -> std::io::Result<Option<String>> {
+    // Read line by line into a single buffer (no per-line allocation); the
+    // opening fence must be the first line.
+    let mut buf = String::new();
+    if reader.read_line(&mut buf)? == 0 || buf.trim_end_matches(['\r', '\n']) != "---" {
         return Ok(None);
     }
-    let mut frontmatter = String::new();
-    for line in lines {
-        let line = line?;
-        if line == "---" {
-            return Ok(Some(frontmatter));
+    buf.clear();
+    loop {
+        let line_start = buf.len();
+        if reader.read_line(&mut buf)? == 0 {
+            return Ok(None); // no closing fence
         }
-        frontmatter.push_str(&line);
-        frontmatter.push('\n');
+        if buf[line_start..].trim_end_matches(['\r', '\n']) == "---" {
+            buf.truncate(line_start); // drop the closing fence line
+            return Ok(Some(buf));
+        }
     }
-    Ok(None) // unterminated
 }
 
 #[cfg(test)]
