@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -100,20 +102,21 @@ fn run() -> Result<bool, BoxError> {
             Entry::Vacant(e) => e.insert(compile(schema_path)?),
         };
 
-        let text = match std::fs::read_to_string(file) {
-            Ok(text) => text,
-            Err(e) => {
-                eprintln!("{}: {e}", file.display());
-                ok = false;
-                continue;
-            }
-        };
-        let Some(frontmatter) = extract_frontmatter(&text) else {
-            eprintln!("{}: no YAML frontmatter found", file.display());
-            ok = false;
-            continue;
-        };
-        let instance: serde_json::Value = match yaml_serde::from_str(frontmatter) {
+        let frontmatter =
+            match File::open(file).and_then(|f| extract_frontmatter(BufReader::new(f))) {
+                Ok(Some(frontmatter)) => frontmatter,
+                Ok(None) => {
+                    eprintln!("{}: no YAML frontmatter found", file.display());
+                    ok = false;
+                    continue;
+                }
+                Err(e) => {
+                    eprintln!("{}: {e}", file.display());
+                    ok = false;
+                    continue;
+                }
+            };
+        let instance: serde_json::Value = match yaml_serde::from_str(&frontmatter) {
             Ok(instance) => instance,
             Err(e) => {
                 eprintln!("{}: invalid YAML frontmatter: {e}", file.display());
@@ -152,58 +155,63 @@ fn compile(schema_path: &Path) -> Result<Validator, BoxError> {
     Ok(validator)
 }
 
-/// Return the YAML frontmatter: the lines between a leading `---` and the
-/// next `---` on its own line, borrowed from `text`. `None` if the file has no
-/// frontmatter block.
-fn extract_frontmatter(text: &str) -> Option<&str> {
-    let body = text
-        .strip_prefix("---\n")
-        .or_else(|| text.strip_prefix("---\r\n"))?;
-    let mut start = 0;
-    while start <= body.len() {
-        let rest = &body[start..];
-        let (line, next) = match rest.find('\n') {
-            Some(i) => (&rest[..i], start + i + 1),
-            None => (rest, body.len() + 1), // final line, no trailing newline
-        };
-        if line.strip_suffix('\r').unwrap_or(line) == "---" {
-            return Some(&body[..start]); // everything up to the closing `---`
-        }
-        start = next;
+/// Read the YAML frontmatter: the lines between a leading `---` and the next
+/// `---` on its own line. Stops at the closing delimiter, so the file body is
+/// never read. `Ok(None)` if there is no frontmatter block.
+fn extract_frontmatter(reader: impl BufRead) -> std::io::Result<Option<String>> {
+    let mut lines = reader.lines();
+    let Some(first) = lines.next().transpose()? else {
+        return Ok(None); // empty file
+    };
+    if first != "---" {
+        return Ok(None);
     }
-    None
+    let mut frontmatter = String::new();
+    for line in lines {
+        let line = line?;
+        if line == "---" {
+            return Ok(Some(frontmatter));
+        }
+        frontmatter.push_str(&line);
+        frontmatter.push('\n');
+    }
+    Ok(None) // unterminated
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn frontmatter(md: &str) -> Option<String> {
+        extract_frontmatter(md.as_bytes()).unwrap()
+    }
+
     #[test]
     fn extracts_block_between_delimiters() {
         let md = "---\ntitle: x\ntags: []\n---\n# body\n";
-        assert_eq!(extract_frontmatter(md), Some("title: x\ntags: []\n"));
+        assert_eq!(frontmatter(md).as_deref(), Some("title: x\ntags: []\n"));
     }
 
     #[test]
     fn body_horizontal_rule_is_ignored() {
         // A `---` in the body (after the closing one) must not be captured.
         let md = "---\ntitle: x\n---\nintro\n\n---\n\nmore\n";
-        assert_eq!(extract_frontmatter(md), Some("title: x\n"));
+        assert_eq!(frontmatter(md).as_deref(), Some("title: x\n"));
     }
 
     #[test]
     fn missing_leading_delimiter_is_none() {
-        assert_eq!(extract_frontmatter("# heading\n---\nx\n"), None);
+        assert_eq!(frontmatter("# heading\n---\nx\n"), None);
     }
 
     #[test]
     fn unterminated_block_is_none() {
-        assert_eq!(extract_frontmatter("---\ntitle: x\n"), None);
+        assert_eq!(frontmatter("---\ntitle: x\n"), None);
     }
 
     #[test]
     fn empty_block_is_empty_string() {
-        assert_eq!(extract_frontmatter("---\n---\n"), Some(""));
+        assert_eq!(frontmatter("---\n---\n").as_deref(), Some(""));
     }
 
     #[test]
