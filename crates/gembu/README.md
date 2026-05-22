@@ -36,13 +36,17 @@ directory.
 {
   "rules": [
     { "include": "Daily/**/*.md", "schema": ".schema/daily.json" },
-    { "include": "References/**/*.md", "schema": ".schema/references.json" },
-    { "include": "Notes/**/*.md", "schema": ".schema/notes.json" }
+    { "include": "Notes/**/*.md", "schema": ".schema/notes.json" },
+    { "include": "References/**/*.md", "schema": ".schema/references.json" }
   ]
 }
 ```
 
-`include` patterns use [fast-glob syntax](https://github.com/oxc-project/fast-glob#syntax).
+`include` patterns support only `*` (any run of characters within a path
+segment) and `**` (any run including path separators). Other [fast-glob
+syntax](https://github.com/oxc-project/fast-glob#syntax) such as `?` and
+`[...]` is byte-oriented and does not handle multi-byte (e.g. Japanese)
+characters correctly, so it is unsupported.
 
 Schemas may use relative `$ref`s (e.g. `./base.json`); they resolve against the
 schema file's own location. `format` assertions are enabled.
