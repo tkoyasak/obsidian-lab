@@ -5,7 +5,7 @@ import process from "node:process";
 const targets = ["complete_next_action.ts", "resolve_urls.ts"];
 const entries = targets.map((file) => path.join(import.meta.dir, file));
 
-const outDir = path.join(import.meta.dir, "../../dist/quickadd");
+const outDir = process.env.OUT_DIR ?? path.join(import.meta.dir, "../../dist/quickadd");
 
 const result = await Bun.build({
   entrypoints: entries,

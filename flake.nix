@@ -162,6 +162,51 @@
           packages.gembu = craneLib.buildPackage (gembuArgs // { cargoArtifacts = gembuDeps; });
           packages.default = config.packages.gembu;
 
+          # CSS snippets — just the stylesheets, ready to symlink into a vault's
+          # `.obsidian/snippets`.
+          packages.css-snippets = pkgs.runCommand "css-snippets" { } ''
+            mkdir -p $out
+            cp ${./packages/css-snippets}/*.css $out/
+          '';
+
+          # Raycast script commands — the executable shell scripts.
+          packages.raycast-scripts = pkgs.runCommand "raycast-scripts" { } ''
+            mkdir -p $out
+            cp ${./packages/raycast-scripts}/*.sh $out/
+            chmod +x $out/*.sh
+          '';
+
+          # QuickAdd user scripts — bundled to CommonJS by the package's own
+          # build.ts (no dependencies, so no node_modules needed).
+          packages.quickadd-scripts = pkgs.stdenv.mkDerivation {
+            pname = "quickadd-scripts";
+            version = "0.0.0";
+            src = pkgs.lib.fileset.toSource {
+              root = ./packages/quickadd-scripts;
+              fileset = pkgs.lib.fileset.unions [
+                ./packages/quickadd-scripts/build.ts
+                ./packages/quickadd-scripts/complete_next_action.ts
+                ./packages/quickadd-scripts/resolve_urls.ts
+                ./packages/quickadd-scripts/quickadd.d.ts
+                ./packages/quickadd-scripts/tsconfig.json
+              ];
+            };
+            nativeBuildInputs = [ pkgs.bun ];
+            dontConfigure = true;
+            buildPhase = ''
+              runHook preBuild
+              export HOME=$TMPDIR OUT_DIR=$PWD/_out
+              bun run ./build.ts
+              runHook postBuild
+            '';
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out
+              cp -R _out/. $out/
+              runHook postInstall
+            '';
+          };
+
           # `nix develop` / direnv — shellHook installs the git pre-commit hook.
           devShells.default = pkgs.mkShell {
             inputsFrom = [ config.pre-commit.devShell ];
