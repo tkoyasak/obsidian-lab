@@ -5,16 +5,16 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     crane.url = "github:ipetkov/crane";
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     git-hooks = {
       url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -89,6 +89,9 @@
           # the bun/cargo hooks additionally need project deps
           # (node_modules / crate cache), so they are meant to run at commit
           # time inside the devShell, not in a hermetic `nix flake check`.
+          # dist holds committed build artifacts — exclude from every hook so
+          # tools aren't handed batches that are entirely ignored.
+          pre-commit.settings.excludes = [ "(^|/)dist/" ];
           pre-commit.settings.hooks = {
             # All formatting runs through treefmt (rustfmt / oxfmt / pkl),
             # dispatched per staged file by extension.
@@ -142,6 +145,8 @@
           # reads `.oxfmtrc.json` for dist ignore and import sort.
           treefmt = {
             projectRootFile = "flake.nix";
+            # Built artifacts are committed but never formatted.
+            settings.global.excludes = [ "**/dist/**" ];
             programs.nixfmt.enable = true;
             programs.oxfmt.enable = true;
             programs.rustfmt = {
@@ -154,7 +159,10 @@
                 "format"
                 "-w"
               ];
-              includes = [ "*.pkl" ];
+              includes = [
+                "*.pkl"
+                "PklProject"
+              ];
             };
           };
 
@@ -162,50 +170,28 @@
           packages.gembu = craneLib.buildPackage (gembuArgs // { cargoArtifacts = gembuDeps; });
           packages.default = config.packages.gembu;
 
-          # CSS snippets — just the stylesheets, ready to symlink into a vault's
-          # `.obsidian/snippets`.
+          # templater/quickadd are built locally into each package's `dist/`
+          # (committed) by `bun run build`; Nix redistributes them as-is.
+          packages.templater-functions = pkgs.runCommand "templater-functions" { } ''
+            mkdir -p $out
+            cp ${./packages/templater-functions/dist}/*.js $out/
+          '';
+          packages.quickadd-scripts = pkgs.runCommand "quickadd-scripts" { } ''
+            mkdir -p $out
+            cp ${./packages/quickadd-scripts/dist}/*.js $out/
+          '';
+
+          # css-snippets and raycast-scripts have no build step — distribute
+          # the sources directly.
           packages.css-snippets = pkgs.runCommand "css-snippets" { } ''
             mkdir -p $out
             cp ${./packages/css-snippets}/*.css $out/
           '';
-
-          # Raycast script commands — the executable shell scripts.
           packages.raycast-scripts = pkgs.runCommand "raycast-scripts" { } ''
             mkdir -p $out
             cp ${./packages/raycast-scripts}/*.sh $out/
             chmod +x $out/*.sh
           '';
-
-          # QuickAdd user scripts — bundled to CommonJS by the package's own
-          # build.ts (no dependencies, so no node_modules needed).
-          packages.quickadd-scripts = pkgs.stdenv.mkDerivation {
-            pname = "quickadd-scripts";
-            version = "0.0.0";
-            src = pkgs.lib.fileset.toSource {
-              root = ./packages/quickadd-scripts;
-              fileset = pkgs.lib.fileset.unions [
-                ./packages/quickadd-scripts/build.ts
-                ./packages/quickadd-scripts/complete_next_action.ts
-                ./packages/quickadd-scripts/resolve_urls.ts
-                ./packages/quickadd-scripts/quickadd.d.ts
-                ./packages/quickadd-scripts/tsconfig.json
-              ];
-            };
-            nativeBuildInputs = [ pkgs.bun ];
-            dontConfigure = true;
-            buildPhase = ''
-              runHook preBuild
-              export HOME=$TMPDIR OUT_DIR=$PWD/_out
-              bun run ./build.ts
-              runHook postBuild
-            '';
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out
-              cp -R _out/. $out/
-              runHook postInstall
-            '';
-          };
 
           # `nix develop` / direnv — shellHook installs the git pre-commit hook.
           devShells.default = pkgs.mkShell {
