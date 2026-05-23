@@ -1,0 +1,7 @@
+amends "pkl:Project"
+
+dependencies {
+  ["json_schema"] {
+    uri = "package://pkg.pkl-lang.org/pkl-pantry/org.json_schema@1.1.0"
+  }
+}

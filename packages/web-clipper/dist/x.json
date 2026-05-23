@@ -75,7 +75,9 @@
       "type": "text"
     }
   ],
-  "triggers": ["/^https:\\/\\/x\\.com\\/[A-Za-z0-9_]+\\/status\\/\\d+$/"],
+  "triggers": [
+    "/^https:\\/\\/x\\.com\\/[A-Za-z0-9_]+\\/status\\/\\d+$/"
+  ],
   "noteNameFormat": "{{title}} - {{published|date:\"YYYY-MM-DD\"}}",
   "path": "Clippings"
 }

@@ -1,0 +1,7 @@
+{
+  "name": "properties-schemas",
+  "private": true,
+  "scripts": {
+    "build": "pkl eval -m ./dist ./generate.pkl"
+  }
+}

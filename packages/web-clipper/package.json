@@ -2,7 +2,6 @@
   "name": "web-clipper",
   "private": true,
   "scripts": {
-    "eval": "pkl eval -f json ./*.pkl -o ../../dist/web-clipper/%{moduleName}.json",
-    "fmt": "pkl format -w ."
+    "build": "pkl eval -f json ./*.pkl -o ./dist/%{moduleName}.json"
   }
 }

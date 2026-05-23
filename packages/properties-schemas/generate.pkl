@@ -1,0 +1,99 @@
+module vault.jsonschema.generate
+
+import "@json_schema/JsonSchema.pkl"
+
+local draft202012: String = "https://json-schema.org/draft/2020-12/schema"
+
+local dateString: JsonSchema.Schema = new {
+  type = "string"
+  format = "date"
+}
+
+local tidString: JsonSchema.Schema = new {
+  $comment =
+    "AT Protocol TID: 13 chars, base32-sortable, high bit 0. See <https://atproto.com/specs/tid>."
+  type = "string"
+  pattern = #"^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$"#
+}
+
+local nullableString: JsonSchema.Schema = new {
+  type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+}
+
+local tagList: JsonSchema.Schema = new {
+  $comment = "Tags are lowercase/hyphenated, not starting or ending with a hyphen."
+  type = "array"
+  items = new {
+    type = "string"
+    pattern = #"^[0-9a-z]([0-9a-z-]*[0-9a-z])?$"#
+  }
+  uniqueItems = true
+}
+
+local categoryList: JsonSchema.Schema = new {
+  $comment = "Categories are wiki links to capitalized category notes, e.g. [[Book]]."
+  type = "array"
+  items = new {
+    type = "string"
+    pattern = #"^\[\[[0-9A-Z]([0-9a-zA-Z -]*[0-9a-zA-Z])?\]\]$"#
+  }
+  uniqueItems = true
+}
+
+local base: JsonSchema = new {
+  $schema = draft202012
+  title = "Vault frontmatter — common base"
+  type = "object"
+  additionalProperties = true
+  required { "created"; "modified"; "content_id"; "visibility"; "categories"; "tags" }
+  properties {
+    ["created"] = dateString
+    ["modified"] = dateString
+    ["content_id"] = tidString
+    ["visibility"] {
+      type = "string"
+      enum { "private"; "public"; "unlisted" }
+    }
+    ["thumbnail"] {
+      type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+      format = "uri-reference"
+    }
+    ["description"] = nullableString
+    ["categories"] = categoryList
+    ["tags"] = tagList
+  }
+}
+
+local notes: JsonSchema = (base) {
+  title = "Note frontmatter"
+}
+
+local daily: JsonSchema = (base) {
+  title = "Daily note frontmatter"
+  $comment = "Daily notes use the date itself as content_id (e.g. 2026-05-20)."
+  properties {
+    ["content_id"] = dateString
+  }
+}
+
+local references: JsonSchema = (base) {
+  title = "Reference note frontmatter"
+  $comment =
+    "References add an optional `url` field. Nullable for cases where the source is offline / handwritten / oral."
+  properties {
+    ["url"] {
+      type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+      format = "uri"
+    }
+  }
+}
+
+local jsonRenderer = (JsonSchema.output.renderer) as JsonRenderer
+
+output {
+  files {
+    ["daily.json"] { value = daily; renderer = jsonRenderer }
+    ["notes.json"] { value = notes; renderer = jsonRenderer }
+    ["references.json"] { value = references; renderer = jsonRenderer }
+  }
+}

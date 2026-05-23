@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Note frontmatter",
+  "type": "object",
+  "properties": {
+    "created": {
+      "type": "string",
+      "format": "date"
+    },
+    "modified": {
+      "type": "string",
+      "format": "date"
+    },
+    "content_id": {
+      "$comment": "AT Protocol TID: 13 chars, base32-sortable, high bit 0. See <https://atproto.com/specs/tid>.",
+      "type": "string",
+      "pattern": "^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "public",
+        "unlisted"
+      ]
+    },
+    "thumbnail": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri-reference"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "categories": {
+      "$comment": "Categories are wiki links to capitalized category notes, e.g. [[Book]].",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\[\\[[0-9A-Z]([0-9a-zA-Z -]*[0-9a-zA-Z])?\\]\\]$"
+      },
+      "uniqueItems": true
+    },
+    "tags": {
+      "$comment": "Tags are lowercase/hyphenated, not starting or ending with a hyphen.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-z]([0-9a-z-]*[0-9a-z])?$"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "created",
+    "modified",
+    "content_id",
+    "visibility",
+    "categories",
+    "tags"
+  ]
+}

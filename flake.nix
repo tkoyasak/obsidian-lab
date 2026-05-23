@@ -3,18 +3,23 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
     flake-parts.url = "github:hercules-ci/flake-parts";
-    crane.url = "github:ipetkov/crane";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+
     git-hooks = {
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    crane.url = "github:ipetkov/crane";
+
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -187,6 +192,17 @@
             mkdir -p $out
             cp ${./packages/raycast-scripts}/*.sh $out/
             chmod +x $out/*.sh
+          '';
+
+          # web-clipper templates and properties JSON Schemas are generated
+          # from PKL into each package's `dist/` (committed) by `pkl eval`.
+          packages.web-clipper = pkgs.runCommand "web-clipper" { } ''
+            mkdir -p $out
+            cp ${./packages/web-clipper/dist}/*.json $out/
+          '';
+          packages.properties-schemas = pkgs.runCommand "properties-schemas" { } ''
+            mkdir -p $out
+            cp ${./packages/properties-schemas/dist}/*.json $out/
           '';
 
           # `nix develop` / direnv — shellHook installs the git pre-commit hook.
