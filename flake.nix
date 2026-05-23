@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    crane.url = "github:ipetkov/crane";
     git-hooks = {
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -34,6 +35,27 @@
               export PATH=${rustBinPath}:$PATH
               exec ${cmd}
             ''}";
+
+          craneLib = inputs.crane.mkLib pkgs;
+          # Shared between the deps-only and final builds. Only the Rust files
+          # are brought in (no node_modules / packages/).
+          gembuArgs = {
+            pname = "gembu";
+            version = "0.0.0";
+            src = pkgs.lib.fileset.toSource {
+              root = ./.;
+              fileset = pkgs.lib.fileset.unions [
+                ./Cargo.toml
+                ./Cargo.lock
+                ./crates
+              ];
+            };
+            strictDeps = true;
+            cargoExtraArgs = "--package gembu";
+          };
+          # Build dependencies once and cache them, so editing gembu's own
+          # sources doesn't recompile the dependency tree.
+          gembuDeps = craneLib.buildDepsOnly gembuArgs;
         in
         {
           # git-hooks.nix — replaces the former `prek` setup. Tools are
@@ -101,29 +123,8 @@
             };
           };
 
-          # `gembu` — frontmatter validator CLI. Only the Rust files are
-          # brought into the build (no node_modules / packages/).
-          packages.gembu = pkgs.rustPlatform.buildRustPackage {
-            pname = "gembu";
-            version = "0.1.0";
-            src = pkgs.lib.fileset.toSource {
-              root = ./.;
-              fileset = pkgs.lib.fileset.unions [
-                ./Cargo.toml
-                ./Cargo.lock
-                ./crates
-              ];
-            };
-            cargoLock.lockFile = ./Cargo.lock;
-            cargoBuildFlags = [
-              "--package"
-              "gembu"
-            ];
-            cargoTestFlags = [
-              "--package"
-              "gembu"
-            ];
-          };
+          # `gembu` — frontmatter validator CLI, built with crane.
+          packages.gembu = craneLib.buildPackage (gembuArgs // { cargoArtifacts = gembuDeps; });
           packages.default = config.packages.gembu;
 
           # `nix develop` / direnv — shellHook installs the git pre-commit hook.
