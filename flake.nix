@@ -170,15 +170,11 @@
           packages.gembu = craneLib.buildPackage (gembuArgs // { cargoArtifacts = gembuDeps; });
           packages.default = config.packages.gembu;
 
-          # templater/quickadd are built locally into each package's `dist/`
-          # (committed) by `bun run build`; Nix redistributes them as-is.
-          packages.templater-functions = pkgs.runCommand "templater-functions" { } ''
-            mkdir -p $out
-            cp ${./packages/templater-functions/dist}/*.js $out/
-          '';
-          packages.quickadd-scripts = pkgs.runCommand "quickadd-scripts" { } ''
-            mkdir -p $out
-            cp ${./packages/quickadd-scripts/dist}/*.js $out/
+          # Templater + QuickAdd user scripts share one source/types package;
+          # build.ts emits dist/templater and dist/quickadd (committed), which
+          # Nix redistributes together as $out/{templater,quickadd}.
+          packages.plugin-scripts = pkgs.runCommand "plugin-scripts" { } ''
+            cp -R ${./packages/plugin-scripts/dist} $out
           '';
 
           # css-snippets and raycast-scripts have no build step — distribute

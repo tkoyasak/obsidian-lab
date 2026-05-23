@@ -1,11 +1,9 @@
 {
-  "name": "templater-functions",
+  "name": "plugin-scripts",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run ./build.ts",
-    "fmt": "bun oxfmt",
-    "lint": "bun oxlint"
+    "build": "bun run ./build.ts"
   },
   "dependencies": {
     "ulid": "3.0.2"
