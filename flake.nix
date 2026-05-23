@@ -5,6 +5,10 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     crane.url = "github:ipetkov/crane";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -20,10 +24,18 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-darwin" ];
 
-      imports = [ inputs.git-hooks.flakeModule ];
+      imports = [
+        inputs.git-hooks.flakeModule
+        inputs.treefmt-nix.flakeModule
+      ];
 
       perSystem =
-        { config, pkgs, system, ... }:
+        {
+          config,
+          pkgs,
+          system,
+          ...
+        }:
         let
           # Pinned Rust toolchain from rust-overlay (cargo, rustc, clippy,
           # rustfmt) plus the bits rust-analyzer needs.
@@ -78,6 +90,13 @@
           # (node_modules / crate cache), so they are meant to run at commit
           # time inside the devShell, not in a hermetic `nix flake check`.
           pre-commit.settings.hooks = {
+            # All formatting runs through treefmt (rustfmt / oxfmt / pkl),
+            # dispatched per staged file by extension.
+            treefmt = {
+              enable = true;
+              package = config.treefmt.build.wrapper;
+            };
+
             # Whole-tree checks (pass_filenames = false): `always_run` so
             # they fire on every commit rather than depending on which file
             # types happen to be staged.
@@ -88,14 +107,7 @@
               always_run = true;
             };
 
-            # JS/TS (oxc) — whole-tree checks via bun scripts.
-            oxfmt = {
-              enable = true;
-              name = "oxfmt";
-              entry = "${pkgs.bun}/bin/bun run fmt -- --check";
-              pass_filenames = false;
-              always_run = true;
-            };
+            # JS/TS (oxc) lint — whole-tree check via bun script.
             oxlint = {
               enable = true;
               name = "oxlint";
@@ -105,13 +117,6 @@
             };
 
             # Rust (cargo workspace) — only run when *.rs files are staged.
-            cargo-fmt = {
-              enable = true;
-              name = "cargo fmt";
-              entry = cargoHook "cargo-fmt" "cargo fmt --all --check";
-              types = [ "rust" ];
-              pass_filenames = false;
-            };
             cargo-clippy = {
               enable = true;
               name = "cargo clippy";
@@ -126,14 +131,50 @@
               types = [ "rust" ];
               pass_filenames = false;
             };
+          };
 
-            # Pkl (web-clipper templates).
-            pkl-format = {
+          # treefmt — single source of truth for formatting, used by the
+          # pre-commit hook above and by `nix fmt`. oxfmt runs through the bun
+          # script so it picks up `.oxfmtrc.json` (dist ignore, import sort).
+          treefmt = {
+            projectRootFile = "flake.nix";
+            programs.nixfmt.enable = true;
+            programs.rustfmt = {
               enable = true;
-              name = "pkl format";
-              entry = "${pkgs.pkl}/bin/pkl format .";
-              pass_filenames = false;
-              always_run = true;
+              package = rustToolchain;
+            };
+            settings.formatter = {
+              oxfmt = {
+                command = "${pkgs.bun}/bin/bun";
+                options = [
+                  "run"
+                  "fmt"
+                  "--"
+                ];
+                includes = [
+                  "*.ts"
+                  "*.tsx"
+                  "*.mts"
+                  "*.cts"
+                  "*.js"
+                  "*.jsx"
+                  "*.mjs"
+                  "*.cjs"
+                  "*.json"
+                  "*.jsonc"
+                  "*.css"
+                  "*.md"
+                  "*.toml"
+                ];
+              };
+              pkl = {
+                command = "${pkgs.pkl}/bin/pkl";
+                options = [
+                  "format"
+                  "-w"
+                ];
+                includes = [ "*.pkl" ];
+              };
             };
           };
 
