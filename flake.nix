@@ -107,13 +107,11 @@
               always_run = true;
             };
 
-            # JS/TS (oxc) lint — whole-tree check via bun script.
+            # JS/TS (oxc) lint — git-hooks.nix built-in (nixpkgs oxlint, which
+            # bundles tsgolint), over staged js/ts files.
             oxlint = {
               enable = true;
-              name = "oxlint";
-              entry = "${pkgs.bun}/bin/bun run lint";
-              pass_filenames = false;
-              always_run = true;
+              settings.configPath = ".oxlintrc.json";
             };
 
             # Rust (cargo workspace) — only run when *.rs files are staged.
