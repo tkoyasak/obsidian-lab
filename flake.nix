@@ -134,47 +134,23 @@
           };
 
           # treefmt — single source of truth for formatting, used by the
-          # pre-commit hook above and by `nix fmt`. oxfmt runs through the bun
-          # script so it picks up `.oxfmtrc.json` (dist ignore, import sort).
+          # pre-commit hook above and by `nix fmt`. oxfmt (from nixpkgs) still
+          # reads `.oxfmtrc.json` for dist ignore and import sort.
           treefmt = {
             projectRootFile = "flake.nix";
             programs.nixfmt.enable = true;
+            programs.oxfmt.enable = true;
             programs.rustfmt = {
               enable = true;
               package = rustToolchain;
             };
-            settings.formatter = {
-              oxfmt = {
-                command = "${pkgs.bun}/bin/bun";
-                options = [
-                  "run"
-                  "fmt"
-                  "--"
-                ];
-                includes = [
-                  "*.ts"
-                  "*.tsx"
-                  "*.mts"
-                  "*.cts"
-                  "*.js"
-                  "*.jsx"
-                  "*.mjs"
-                  "*.cjs"
-                  "*.json"
-                  "*.jsonc"
-                  "*.css"
-                  "*.md"
-                  "*.toml"
-                ];
-              };
-              pkl = {
-                command = "${pkgs.pkl}/bin/pkl";
-                options = [
-                  "format"
-                  "-w"
-                ];
-                includes = [ "*.pkl" ];
-              };
+            settings.formatter.pkl = {
+              command = "${pkgs.pkl}/bin/pkl";
+              options = [
+                "format"
+                "-w"
+              ];
+              includes = [ "*.pkl" ];
             };
           };
 
