@@ -5,6 +5,10 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     crane.url = "github:ipetkov/crane";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     git-hooks = {
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -19,16 +23,19 @@
       imports = [ inputs.git-hooks.flakeModule ];
 
       perSystem =
-        { config, pkgs, ... }:
+        { config, pkgs, system, ... }:
         let
+          # Pinned Rust toolchain from rust-overlay (cargo, rustc, clippy,
+          # rustfmt) plus the bits rust-analyzer needs.
+          rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+            extensions = [
+              "rust-src"
+              "rust-analyzer"
+            ];
+          };
           # `cargo fmt` / `cargo clippy` dispatch to sibling binaries
           # (rustfmt, clippy-driver), so the whole toolchain must be on PATH.
-          rustBinPath = pkgs.lib.makeBinPath [
-            pkgs.cargo
-            pkgs.rustc
-            pkgs.clippy
-            pkgs.rustfmt
-          ];
+          rustBinPath = pkgs.lib.makeBinPath [ rustToolchain ];
           cargoHook =
             name: cmd:
             "${pkgs.writeShellScript name ''
@@ -36,7 +43,8 @@
               exec ${cmd}
             ''}";
 
-          craneLib = inputs.crane.mkLib pkgs;
+          # crane uses the pinned toolchain rather than the one from nixpkgs.
+          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
           # Shared between the deps-only and final builds. Only the Rust files
           # are brought in (no node_modules / packages/).
           gembuArgs = {
@@ -58,6 +66,12 @@
           gembuDeps = craneLib.buildDepsOnly gembuArgs;
         in
         {
+          # Bring rust-overlay's `rust-bin` into `pkgs` for this system.
+          _module.args.pkgs = import inputs.nixpkgs {
+            inherit system;
+            overlays = [ inputs.rust-overlay.overlays.default ];
+          };
+
           # git-hooks.nix — replaces the former `prek` setup. Tools are
           # referenced by store path so hooks resolve regardless of PATH;
           # the bun/cargo hooks additionally need project deps
@@ -134,11 +148,7 @@
               pkgs.bun
               pkgs.pkl
               pkgs.gitleaks
-              pkgs.cargo
-              pkgs.rustc
-              pkgs.clippy
-              pkgs.rustfmt
-              pkgs.rust-analyzer
+              rustToolchain
             ];
           };
         };
