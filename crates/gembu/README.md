@@ -43,8 +43,8 @@ directory.
 ```
 
 `include` patterns support only `*` (any run of characters within a path
-segment) and `**` (any run including path separators). Other [fast-glob
-syntax](https://github.com/oxc-project/fast-glob#syntax) such as `?` and
+segment) and `**` (any run including path separators). Other [globset
+syntax](https://docs.rs/globset/latest/globset/#syntax) such as `?` and
 `[...]` is byte-oriented and does not handle multi-byte (e.g. Japanese)
 characters correctly, so it is unsupported.
 

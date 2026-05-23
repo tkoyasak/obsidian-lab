@@ -5,7 +5,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use fast_glob::glob_match;
+use globset::Glob;
 use jsonschema::Validator;
 use serde::Deserialize;
 
@@ -81,18 +81,20 @@ fn run() -> Result<bool, BoxError> {
     };
     let config: Config = serde_json::from_str(&std::fs::read_to_string(&config_path)?)?;
 
+    // Compile each rule's glob once, up front; this rejects an invalid pattern
+    // before any file is read. The first matching rule wins.
+    let matchers = config
+        .rules
+        .iter()
+        .map(|rule| Ok(Glob::new(&rule.include)?.compile_matcher()))
+        .collect::<Result<Vec<_>, BoxError>>()?;
+
     // Compile each schema once, lazily, keyed by its resolved path.
     let mut validators: HashMap<PathBuf, Validator> = HashMap::new();
     let mut ok = true;
 
     for file in &files {
-        // The first rule whose glob matches the path wins.
-        let path = file.to_string_lossy();
-        let Some(idx) = config
-            .rules
-            .iter()
-            .position(|rule| glob_match(rule.include.as_bytes(), path.as_bytes()))
-        else {
+        let Some(idx) = matchers.iter().position(|m| m.is_match(file)) else {
             continue; // no rule covers this path — not ours to validate
         };
         let schema_path = &config.rules[idx].schema;
