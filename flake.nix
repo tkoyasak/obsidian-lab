@@ -117,12 +117,18 @@
             };
 
             # Rust (cargo workspace) — only run when *.rs files are staged.
-            cargo-clippy = {
+            # clippy is git-hooks.nix's built-in (wraps cargo-clippy with cargo
+            # on PATH); cargo-test has no built-in, so it stays a cargoHook.
+            clippy = {
               enable = true;
-              name = "cargo clippy";
-              entry = cargoHook "cargo-clippy" "cargo clippy --workspace --all-targets -- -D warnings";
-              types = [ "rust" ];
-              pass_filenames = false;
+              packageOverrides = {
+                cargo = rustToolchain;
+                clippy = rustToolchain;
+              };
+              settings = {
+                denyWarnings = true;
+                extraArgs = "--workspace --all-targets";
+              };
             };
             cargo-test = {
               enable = true;
