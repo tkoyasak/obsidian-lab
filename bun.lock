@@ -5,20 +5,8 @@
     "": {
       "name": "obsidian-lab",
     },
-    "packages/css-snippets": {
-      "name": "css-snippets",
-    },
-    "packages/quickadd-scripts": {
-      "name": "quickadd-scripts",
-      "devDependencies": {
-        "@types/bun": "catalog:",
-        "@types/node": "catalog:",
-        "obsidian": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
-    "packages/templater-functions": {
-      "name": "templater-functions",
+    "packages/plugin-scripts": {
+      "name": "plugin-scripts",
       "dependencies": {
         "ulid": "3.0.2",
       },
@@ -28,6 +16,9 @@
         "obsidian": "catalog:",
         "typescript": "catalog:",
       },
+    },
+    "packages/properties-schemas": {
+      "name": "properties-schemas",
     },
     "packages/web-clipper": {
       "name": "web-clipper",
@@ -60,17 +51,15 @@
 
     "crelt": ["crelt@1.0.6", "https://npm.flatt.tech/crelt/-/crelt-1.0.6.tgz", {}, "sha512-VQ2MBenTq1fWZUH9DJNGti7kKv6EeAuYr3cLwxUWhIu1baTaXh4Ib5W2CqHVqib4/MqbYGJqiL3Zb8GJZr3l4g=="],
 
-    "css-snippets": ["css-snippets@workspace:packages/css-snippets"],
-
     "moment": ["moment@2.29.4", "https://npm.flatt.tech/moment/-/moment-2.29.4.tgz", {}, "sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w=="],
 
     "obsidian": ["obsidian@1.12.3", "https://npm.flatt.tech/obsidian/-/obsidian-1.12.3.tgz", { "dependencies": { "@types/codemirror": "5.60.8", "moment": "2.29.4" }, "peerDependencies": { "@codemirror/state": "6.5.0", "@codemirror/view": "6.38.6" } }, "sha512-HxWqe763dOqzXjnNiHmAJTRERN8KILBSqxDSEqbeSr7W8R8Jxezzbca+nz1LiiqXnMpM8lV2jzAezw3CZ4xNUw=="],
 
-    "quickadd-scripts": ["quickadd-scripts@workspace:packages/quickadd-scripts"],
+    "plugin-scripts": ["plugin-scripts@workspace:packages/plugin-scripts"],
+
+    "properties-schemas": ["properties-schemas@workspace:packages/properties-schemas"],
 
     "style-mod": ["style-mod@4.1.3", "https://npm.flatt.tech/style-mod/-/style-mod-4.1.3.tgz", {}, "sha512-i/n8VsZydrugj3Iuzll8+x/00GH2vnYsk1eomD8QiRrSAeW6ItbCQDtfXCeJHd0iwiNagqjQkvpvREEPtW3IoQ=="],
-
-    "templater-functions": ["templater-functions@workspace:packages/templater-functions"],
 
     "typescript": ["typescript@6.0.3", "https://npm.flatt.tech/typescript/-/typescript-6.0.3.tgz", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
