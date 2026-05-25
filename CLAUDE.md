@@ -41,14 +41,14 @@ declared in `Taskfile.pkl` with typed `inputs`/`outputs` so unchanged
 packages hit the content-addressed cache:
 
 ```sh
-pkf run build          # all packages + gembu (build:scripts/clipper/schemas/gembu)
-pkf run build:scripts  # one package: bun bundles src → dist/{templater,quickadd}
-pkf run build:clipper  # pkl eval web-clipper → dist/*.json
-pkf run build:schemas  # pkl eval properties-schemas → dist/*.json
-pkf run build:gembu    # cargo build -p gembu
-pkf run test           # cargo test --workspace (test:gembu)
-pkf run fmt            # nix fmt (uncached passthrough)
-pkf list               # every task + description
+pkf run build                    # all packages + gembu
+pkf run build:plugin-scripts     # bun bundles src → dist/{templater,quickadd}
+pkf run build:web-clipper        # pkl eval web-clipper → dist/*.json
+pkf run build:properties-schemas # pkl eval properties-schemas → dist/*.json
+pkf run build:gembu              # cargo build -p gembu
+pkf run test                     # cargo test --workspace (test:gembu)
+pkf run fmt                      # nix fmt (uncached passthrough)
+pkf list                         # every task + description
 ```
 
 `pkf affected --since=origin/main` runs only the tasks whose `inputs`

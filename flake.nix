@@ -149,6 +149,13 @@
               types = [ "rust" ];
               pass_filenames = false;
             };
+
+            # One guard per dist-producing package, fired only when that
+            # package's own files are staged. Mirrors Taskfile.pkl's
+            # build:<package> tasks.
+            dist-plugin-scripts = lib.distSyncHook "plugin-scripts";
+            dist-web-clipper = lib.distSyncHook "web-clipper";
+            dist-properties-schemas = lib.distSyncHook "properties-schemas";
           };
 
           # treefmt — single source of truth for formatting, used by the

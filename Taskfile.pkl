@@ -1,8 +1,8 @@
 amends "package://pkg.pkl-lang.org/github.com/mizchi/pkfire/pkfire@0.10.0#/Taskfile.pkl"
 
 // plugin-scripts (Bun): bundle src into dist/{templater,quickadd}
-local buildScripts: Task = new {
-  name = "build:scripts"
+local buildPluginScripts: Task = new {
+  name = "build:plugin-scripts"
   description = "bundle plugin-scripts → dist/{templater,quickadd}"
   workdir = "packages/plugin-scripts"
   cmd = "bun run ./build.ts"
@@ -19,8 +19,8 @@ local buildScripts: Task = new {
 }
 
 // web-clipper (PKL): pkl eval → dist/*.json
-local buildClipper: Task = new {
-  name = "build:clipper"
+local buildWebClipper: Task = new {
+  name = "build:web-clipper"
   description = "pkl eval web-clipper templates → dist/*.json"
   workdir = "packages/web-clipper"
   cmd = "pkl eval -f json ./*.pkl -o ./dist/%{moduleName}.json"
@@ -33,8 +33,8 @@ local buildClipper: Task = new {
 }
 
 // properties-schemas (PKL): pkl eval → dist/*.json
-local buildSchemas: Task = new {
-  name = "build:schemas"
+local buildPropertiesSchemas: Task = new {
+  name = "build:properties-schemas"
   description = "pkl eval properties-schemas → dist/*.json"
   workdir = "packages/properties-schemas"
   cmd = "pkl eval -m ./dist ./generate.pkl"
@@ -82,7 +82,7 @@ local fmt: Task = new {
 local build: Task = new {
   name = "build"
   description = "regenerate every package's committed dist/ + gembu"
-  deps { buildScripts; buildClipper; buildSchemas; buildGembu }
+  deps { buildPluginScripts; buildWebClipper; buildPropertiesSchemas; buildGembu }
 }
 
 local test: Task = new {
@@ -92,9 +92,9 @@ local test: Task = new {
 }
 
 tasks {
-  buildScripts
-  buildClipper
-  buildSchemas
+  buildPluginScripts
+  buildWebClipper
+  buildPropertiesSchemas
   buildGembu
   testGembu
   fmt
