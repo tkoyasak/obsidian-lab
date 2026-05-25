@@ -81,6 +81,12 @@
           # Build dependencies once and cache them, so editing gembu's own
           # sources doesn't recompile the dependency tree.
           gembuDeps = craneLib.buildDepsOnly gembuArgs;
+
+          # Project-local helpers (see lib/default.nix).
+          lib = import ./lib {
+            inherit pkgs;
+            root = ./packages;
+          };
         in
         {
           # Bring rust-overlay's `rust-bin` into `pkgs` for this system.
@@ -171,39 +177,39 @@
             };
           };
 
-          # `gembu` — frontmatter validator CLI, built with crane.
-          packages.gembu = craneLib.buildPackage (gembuArgs // { cargoArtifacts = gembuDeps; });
-          packages.default = config.packages.gembu;
-
-          # Templater + QuickAdd user scripts share one source/types package;
-          # build.ts emits dist/templater and dist/quickadd (committed), which
-          # Nix redistributes together as $out/{templater,quickadd}.
-          packages.plugin-scripts = pkgs.runCommand "plugin-scripts" { } ''
-            cp -R ${./packages/plugin-scripts/dist} $out
-          '';
-
-          # css-snippets and raycast-scripts have no build step — distribute
-          # the sources directly.
-          packages.css-snippets = pkgs.runCommand "css-snippets" { } ''
-            mkdir -p $out
-            cp ${./packages/css-snippets}/*.css $out/
-          '';
-          packages.raycast-scripts = pkgs.runCommand "raycast-scripts" { } ''
-            mkdir -p $out
-            cp ${./packages/raycast-scripts}/*.sh $out/
-            chmod +x $out/*.sh
-          '';
-
-          # web-clipper templates and properties JSON Schemas are generated
-          # from PKL into each package's `dist/` (committed) by `pkl eval`.
-          packages.web-clipper = pkgs.runCommand "web-clipper" { } ''
-            mkdir -p $out
-            cp ${./packages/web-clipper/dist}/*.json $out/
-          '';
-          packages.properties-schemas = pkgs.runCommand "properties-schemas" { } ''
-            mkdir -p $out
-            cp ${./packages/properties-schemas/dist}/*.json $out/
-          '';
+          # Redistribute-only packages; mapAttrs feeds each attr name into its
+          # builder, so the name is never written twice.
+          #   plugin-scripts — build.ts emits dist/{templater,quickadd}
+          #     (committed); both are redistributed together.
+          #   css-snippets / raycast-scripts — no build step, sources directly.
+          #   web-clipper / properties-schemas — pkl eval generates the
+          #     committed dist/*.json.
+          packages =
+            pkgs.lib.mapAttrs (name: build: build name) {
+              plugin-scripts = lib.redistribute {
+                dist = true;
+              };
+              css-snippets = lib.redistribute {
+                glob = "*.css";
+              };
+              raycast-scripts = lib.redistribute {
+                glob = "*.sh";
+                executable = true;
+              };
+              web-clipper = lib.redistribute {
+                glob = "*.json";
+                dist = true;
+              };
+              properties-schemas = lib.redistribute {
+                glob = "*.json";
+                dist = true;
+              };
+            }
+            // {
+              # `gembu` — frontmatter validator CLI, built with crane.
+              gembu = craneLib.buildPackage (gembuArgs // { cargoArtifacts = gembuDeps; });
+              default = config.packages.gembu;
+            };
 
           # `nix develop` / direnv — shellHook installs the git pre-commit hook.
           devShells.default = pkgs.mkShell {
