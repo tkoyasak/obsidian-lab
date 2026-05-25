@@ -8,13 +8,19 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      oxc:
+      bun-deps:
         applies-to: version-updates
-        patterns:
-          - "oxfmt"
-          - "oxlint"
-          - "oxlint-tsgolint"
-      bun-dependencies:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      cargo-deps:
         applies-to: version-updates
         update-types:
           - minor
