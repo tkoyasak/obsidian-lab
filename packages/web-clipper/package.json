@@ -1,7 +1,0 @@
-{
-  "name": "web-clipper",
-  "private": true,
-  "scripts": {
-    "build": "pkl eval -f json ./*.pkl -o ./dist/%{moduleName}.json"
-  }
-}

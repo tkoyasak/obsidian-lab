@@ -35,14 +35,26 @@ nix build .#<name>      # gembu, plugin-scripts, css-snippets, raycast-scripts,
 nix develop             # dev shell; shellHook installs the git pre-commit hook
 ```
 
-Regenerate a package's committed `dist/` after editing sources:
+Regenerate a package's committed `dist/` after editing sources. `pkf`
+([pkfire](https://github.com/mizchi/pkfire)) is the task runner; tasks are
+declared in `Taskfile.pkl` with typed `inputs`/`outputs` so unchanged
+packages hit the content-addressed cache:
 
 ```sh
-bun run --cwd packages/plugin-scripts build      # → dist/{templater,quickadd}
-bun run --cwd packages/web-clipper build         # pkl eval → dist/*.json
-bun run --cwd packages/properties-schemas build  # pkl eval → dist/*.json
-cargo build -p gembu        # or: cargo test --workspace
+pkf run build          # all packages + gembu (build:scripts/clipper/schemas/gembu)
+pkf run build:scripts  # one package: bun bundles src → dist/{templater,quickadd}
+pkf run build:clipper  # pkl eval web-clipper → dist/*.json
+pkf run build:schemas  # pkl eval properties-schemas → dist/*.json
+pkf run build:gembu    # cargo build -p gembu
+pkf run test           # cargo test --workspace (test:gembu)
+pkf run fmt            # nix fmt (uncached passthrough)
+pkf list               # every task + description
 ```
+
+`pkf affected --since=origin/main` runs only the tasks whose `inputs`
+changed — useful in CI. Each task's `cmd` invokes the underlying tool
+directly (`bun run ./build.ts`, `pkl eval …`, `cargo …`); there are no
+`package.json` build scripts.
 
 ## Architecture
 

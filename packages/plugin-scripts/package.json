@@ -2,9 +2,6 @@
   "name": "plugin-scripts",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "bun run ./build.ts"
-  },
   "dependencies": {
     "ulid": "3.0.2"
   },

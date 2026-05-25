@@ -1,0 +1,103 @@
+amends "package://pkg.pkl-lang.org/github.com/mizchi/pkfire/pkfire@0.10.0#/Taskfile.pkl"
+
+// plugin-scripts (Bun): bundle src into dist/{templater,quickadd}
+local buildScripts: Task = new {
+  name = "build:scripts"
+  description = "bundle plugin-scripts → dist/{templater,quickadd}"
+  workdir = "packages/plugin-scripts"
+  cmd = "bun run ./build.ts"
+  inputs {
+    "src/**/*.ts"
+    "build.ts"
+    "*.d.ts"
+    "tsconfig.json"
+  }
+  outputs {
+    "dist/templater"
+    "dist/quickadd"
+  }
+}
+
+// web-clipper (PKL): pkl eval → dist/*.json
+local buildClipper: Task = new {
+  name = "build:clipper"
+  description = "pkl eval web-clipper templates → dist/*.json"
+  workdir = "packages/web-clipper"
+  cmd = "pkl eval -f json ./*.pkl -o ./dist/%{moduleName}.json"
+  inputs {
+    "*.pkl"
+    "PklProject"
+    "PklProject.deps.json"
+  }
+  outputs { "dist" }
+}
+
+// properties-schemas (PKL): pkl eval → dist/*.json
+local buildSchemas: Task = new {
+  name = "build:schemas"
+  description = "pkl eval properties-schemas → dist/*.json"
+  workdir = "packages/properties-schemas"
+  cmd = "pkl eval -m ./dist ./generate.pkl"
+  inputs {
+    "*.pkl"
+    "PklProject"
+    "PklProject.deps.json"
+  }
+  outputs { "dist" }
+}
+
+// gembu (Cargo): frontmatter validator CLI
+local sourcesGembu: Listing<String> = new {
+  "crates/gembu/src/**/*.rs"
+  "crates/gembu/Cargo.toml"
+  "Cargo.toml"
+  "Cargo.lock"
+}
+
+local buildGembu: Task = new {
+  name = "build:gembu"
+  description = "cargo build -p gembu"
+  cmd = "cargo build -p gembu"
+  inputs = sourcesGembu
+  outputs { "target/debug/gembu" }
+}
+
+local testGembu: Task = new {
+  name = "test:gembu"
+  description = "cargo test --workspace"
+  cmd = "cargo test --workspace"
+  inputs = sourcesGembu
+  deps { buildGembu }
+}
+
+// format the whole tree via treefmt (uncached: acts on the entire tree)
+local fmt: Task = new {
+  name = "fmt"
+  description = "nix fmt (treefmt)"
+  cmd = "nix fmt"
+  cache = false
+}
+
+// umbrella tasks
+local build: Task = new {
+  name = "build"
+  description = "regenerate every package's committed dist/ + gembu"
+  deps { buildScripts; buildClipper; buildSchemas; buildGembu }
+}
+
+local test: Task = new {
+  name = "test"
+  description = "run the whole test suite"
+  deps { testGembu }
+}
+
+tasks {
+  buildScripts
+  buildClipper
+  buildSchemas
+  buildGembu
+  testGembu
+  fmt
+  build
+  test
+}
