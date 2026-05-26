@@ -72,5 +72,90 @@
     "visibility",
     "categories",
     "tags"
+  ],
+  "allOf": [
+    {
+      "$comment": "References categorized as [[Book]] carry bibliographic metadata.",
+      "if": {
+        "properties": {
+          "categories": {
+            "contains": {
+              "const": "[[Book]]"
+            }
+          }
+        },
+        "required": [
+          "categories"
+        ]
+      },
+      "then": {
+        "properties": {
+          "isbn": {
+            "$comment": "ISBN-13: 13 digits, prefix 978 or 979.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^97[89][0-9]{10}$"
+          },
+          "ndl_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "translaters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ndc10": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    }
   ]
 }

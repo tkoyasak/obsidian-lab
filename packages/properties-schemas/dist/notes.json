@@ -64,5 +64,114 @@
     "visibility",
     "categories",
     "tags"
+  ],
+  "allOf": [
+    {
+      "$comment": "Notes categorized as [[Task]] follow the TaskMD format. See `vault/Notes/How I manage tasks.md`.",
+      "if": {
+        "properties": {
+          "categories": {
+            "contains": {
+              "const": "[[Task]]"
+            }
+          }
+        },
+        "required": [
+          "categories"
+        ]
+      },
+      "then": {
+        "properties": {
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Inbox",
+              "Icebox",
+              "Planned",
+              "In Progress",
+              "On Hold",
+              "Done",
+              "Cancelled"
+            ]
+          },
+          "review": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "due": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "contexts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "waiting_for": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "estimate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "status",
+          "priority"
+        ],
+        "allOf": [
+          {
+            "$comment": "`review` is required for `Planned` and `On Hold`.",
+            "if": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "Planned",
+                    "On Hold"
+                  ]
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "review": {
+                  "type": "string",
+                  "format": "date"
+                }
+              },
+              "required": [
+                "review"
+              ]
+            }
+          }
+        ]
+      }
+    }
   ]
 }

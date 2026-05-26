@@ -20,6 +20,11 @@ local nullableString: JsonSchema.Schema = new {
   type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
 }
 
+local nullableDate: JsonSchema.Schema = new {
+  type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+  format = "date"
+}
+
 local tagList: JsonSchema.Schema = new {
   $comment = "Tags are lowercase/hyphenated, not starting or ending with a hyphen."
   type = "array"
@@ -64,8 +69,76 @@ local base: JsonSchema = new {
   }
 }
 
+local taskConditional: JsonSchema.Schema = new {
+  $comment =
+    "Notes categorized as [[Task]] follow the TaskMD format. See `vault/Notes/How I manage tasks.md`."
+  `if` {
+    required { "categories" }
+    properties {
+      ["categories"] {
+        contains { `const` = "[[Task]]" }
+      }
+    }
+  }
+  then {
+    required { "status"; "priority" }
+    properties {
+      ["project"] = nullableString
+      ["status"] {
+        type = "string"
+        enum {
+          "Inbox"
+          "Icebox"
+          "Planned"
+          "In Progress"
+          "On Hold"
+          "Done"
+          "Cancelled"
+        }
+      }
+      ["review"] = nullableDate
+      ["due"] = nullableDate
+      ["contexts"] {
+        type = "array"
+        items {
+          type = "string"
+        }
+        uniqueItems = true
+      }
+      ["waiting_for"] = nullableString
+      ["estimate"] = nullableString
+      ["priority"] {
+        type = "integer"
+        minimum = 0
+      }
+    }
+    allOf {
+      new {
+        $comment = "`review` is required for `Planned` and `On Hold`."
+        `if` {
+          required { "status" }
+          properties {
+            ["status"] {
+              enum { "Planned"; "On Hold" }
+            }
+          }
+        }
+        then {
+          required { "review" }
+          properties {
+            ["review"] = dateString
+          }
+        }
+      }
+    }
+  }
+}
+
 local notes: JsonSchema = (base) {
   title = "Note frontmatter"
+  allOf {
+    taskConditional
+  }
 }
 
 local daily: JsonSchema = (base) {
@@ -73,6 +146,52 @@ local daily: JsonSchema = (base) {
   $comment = "Daily notes use the date itself as content_id (e.g. 2026-05-20)."
   properties {
     ["content_id"] = dateString
+  }
+}
+
+local bookConditional: JsonSchema.Schema = new {
+  $comment = "References categorized as [[Book]] carry bibliographic metadata."
+  `if` {
+    required { "categories" }
+    properties {
+      ["categories"] {
+        contains { `const` = "[[Book]]" }
+      }
+    }
+  }
+  then {
+    required { "title" }
+    properties {
+      ["isbn"] {
+        $comment = "ISBN-13: 13 digits, prefix 978 or 979."
+        type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+        pattern = #"^97[89][0-9]{10}$"#
+      }
+      ["ndl_url"] {
+        type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+        format = "uri"
+      }
+      ["title"] {
+        type = "string"
+      }
+      ["authors"] {
+        type = "array"
+        items {
+          type = "string"
+        }
+      }
+      ["translaters"] {
+        type = "array"
+        items {
+          type = "string"
+        }
+      }
+      ["publisher"] = nullableString
+      ["published"] = nullableDate
+      ["language"] = nullableString
+      ["ndc10"] = nullableString
+      ["label"] = nullableString
+    }
   }
 }
 
@@ -85,6 +204,9 @@ local references: JsonSchema = (base) {
       type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
       format = "uri"
     }
+  }
+  allOf {
+    bookConditional
   }
 }
 
