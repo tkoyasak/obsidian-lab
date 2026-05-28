@@ -7,6 +7,8 @@
 
 const NDL_SRU = "https://ndlsearch.ndl.go.jp/api/sru";
 const OPENBD_GET = "https://api.openbd.jp/v1/get";
+const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1/volumes";
+const OPENLIBRARY_BOOKS = "https://openlibrary.org/api/books";
 
 // dc:creator role suffixes. Longer forms must come first so e.g. "監訳" wins
 // over "訳". Roles not listed fall back to authors.
@@ -251,6 +253,37 @@ const parseOpenBd = (json: string): OpenBdData | null => {
   return { cover: summary.cover ?? "", pubdate: summary.pubdate ?? "" };
 };
 
+// --- cover fallbacks -------------------------------------------------------
+
+const parseGoogleCover = (json: string): string => {
+  try {
+    const data = JSON.parse(json) as {
+      items?: Array<{
+        volumeInfo?: { imageLinks?: { thumbnail?: string; smallThumbnail?: string } };
+      }>;
+    };
+    const links = data.items?.[0]?.volumeInfo?.imageLinks;
+    const url = links?.thumbnail ?? links?.smallThumbnail ?? "";
+    // Google Books often returns http URLs; upgrade so Obsidian can embed them.
+    return url.replace(/^http:/, "https:");
+  } catch {
+    return "";
+  }
+};
+
+const parseOpenLibraryCover = (json: string, isbn: string): string => {
+  try {
+    const data = JSON.parse(json) as Record<
+      string,
+      { cover?: { large?: string; medium?: string; small?: string } }
+    >;
+    const cover = data[`ISBN:${isbn}`]?.cover;
+    return cover?.large ?? cover?.medium ?? cover?.small ?? "";
+  } catch {
+    return "";
+  }
+};
+
 // --- main ------------------------------------------------------------------
 
 const fetch_book = async (qa: Qa): Promise<string> => {
@@ -275,11 +308,34 @@ const fetch_book = async (qa: Qa): Promise<string> => {
     method: "GET",
     throw: false,
   });
-  const [ndlRes, openBdRes] = await Promise.all([ndlReq, openBdReq]);
+  // Cover fallbacks fired in parallel; openBD often has no cover for older or
+  // technical books, where Google Books / Open Library typically do.
+  const googleReq = qa.obsidian.requestUrl({
+    url: `${GOOGLE_BOOKS}?q=isbn:${isbn}&fields=items(volumeInfo/imageLinks)`,
+    method: "GET",
+    throw: false,
+  });
+  const openLibReq = qa.obsidian.requestUrl({
+    url: `${OPENLIBRARY_BOOKS}?bibkeys=ISBN:${isbn}&format=json&jscmd=data`,
+    method: "GET",
+    throw: false,
+  });
+  const [ndlRes, openBdRes, googleRes, openLibRes] = await Promise.all([
+    ndlReq,
+    openBdReq,
+    googleReq,
+    openLibReq,
+  ]);
 
   const ndl = ndlRes.status >= 200 && ndlRes.status < 300 ? parseNdl(ndlRes.text) : null;
   const openBd =
     openBdRes.status >= 200 && openBdRes.status < 300 ? parseOpenBd(openBdRes.text) : null;
+  const googleCover =
+    googleRes.status >= 200 && googleRes.status < 300 ? parseGoogleCover(googleRes.text) : "";
+  const openLibCover =
+    openLibRes.status >= 200 && openLibRes.status < 300
+      ? parseOpenLibraryCover(openLibRes.text, isbn)
+      : "";
 
   if (!ndl && !openBd) qa.abort("Book not found");
 
@@ -307,7 +363,7 @@ const fetch_book = async (qa: Qa): Promise<string> => {
   v.published = published ?? "";
   v.language = ndl?.language ?? "";
   v.ndc10 = ndl?.ndc10 ?? "";
-  v.thumbnail = openBd?.cover ?? "";
+  v.thumbnail = openBd?.cover || googleCover || openLibCover || "";
 
   return "";
 };
