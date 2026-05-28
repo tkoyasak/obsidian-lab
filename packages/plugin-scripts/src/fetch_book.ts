@@ -88,15 +88,6 @@ const dateSpecificity = (d: string | null): number => {
   return digits.filter(Boolean).length;
 };
 
-// --- YAML array fragment ---------------------------------------------------
-
-// Build the value spliced into `authors:{{VALUE:authors}}`. Empty -> " []";
-// otherwise a block sequence with a leading newline so it sits under the key.
-const yamlList = (items: string[]): string => {
-  if (items.length === 0) return " []";
-  return items.map((v) => `\n  - "${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join("");
-};
-
 // --- DOM helpers (namespace-tolerant) --------------------------------------
 
 const localName = (n: string): string => {
@@ -243,6 +234,11 @@ const parseOpenBd = (json: string): OpenBdData | null => {
 // --- main ------------------------------------------------------------------
 
 const fetch_book = async (qa: Qa): Promise<string> => {
+  // QuickAdd runs macros referenced in both the file name format and the
+  // template body, sharing variables across the two passes. Skip the second
+  // invocation so the ISBN prompt and HTTP fetches only happen once.
+  if (typeof qa.variables.isbn === "string" && qa.variables.isbn) return "";
+
   const input = (await qa.quickAddApi.inputPrompt("ISBN")) ?? "";
   const isbn = normalizeIsbn(input);
   if (!isbn) qa.abort("Invalid ISBN");
@@ -278,8 +274,13 @@ const fetch_book = async (qa: Qa): Promise<string> => {
   v.isbn = isbn;
   v.ndl_url = ndl?.ndl_url ?? "";
   v.title = ndl?.title ?? "";
-  v.authors = yamlList(ndl?.authors ?? []);
-  v.translaters = yamlList(ndl?.translaters ?? []);
+  // Raw arrays — QuickAdd's Template Property Types (enableTemplatePropertyTypes)
+  // renders them as YAML lists when they sit as the bare value of a frontmatter
+  // key (e.g. `authors: {{VALUE:authors}}`).
+  v.authors = ndl?.authors ?? [];
+  v.translaters = ndl?.translaters ?? [];
+  // Comma-joined inline form for scalar contexts like File Name Format.
+  v.authors_inline = (ndl?.authors ?? []).join(", ");
   v.publisher = ndl?.publisher ?? "";
   v.published = published ?? "";
   v.language = ndl?.language ?? "";
