@@ -9,6 +9,7 @@ const NDL_SRU = "https://ndlsearch.ndl.go.jp/api/sru";
 const OPENBD_GET = "https://api.openbd.jp/v1/get";
 const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1/volumes";
 const OPENLIBRARY_BOOKS = "https://openlibrary.org/api/books";
+const AMAZON_COVER = "https://m.media-amazon.com/images/P";
 
 // dc:creator role suffixes. Longer forms must come first so e.g. "監訳" wins
 // over "訳". Roles not listed fall back to authors.
@@ -53,6 +54,17 @@ const normalizeIsbn = (raw: string): string | null => {
     return core + isbn13CheckDigit(core);
   }
   return null;
+};
+
+// Reverse: ISBN-13 (978-prefixed) -> ISBN-10 for endpoints keyed on ISBN-10
+// (notably Amazon cover URLs). 979-prefixed ISBNs have no ISBN-10 equivalent.
+const isbn13to10 = (isbn13: string): string | null => {
+  if (!isbn13.startsWith("978")) return null;
+  const core = isbn13.slice(3, 12);
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(core[i]) * (10 - i);
+  const check = (11 - (sum % 11)) % 11;
+  return core + (check === 10 ? "X" : String(check));
 };
 
 // --- date / published ------------------------------------------------------
@@ -271,6 +283,18 @@ const parseGoogleCover = (json: string): string => {
   }
 };
 
+// Amazon serves a ~43-byte 1x1 placeholder when the cover image is missing,
+// so look at content-length via HEAD rather than fetching the bytes.
+const fetchAmazonCover = async (qa: Qa, isbn13: string): Promise<string> => {
+  const isbn10 = isbn13to10(isbn13);
+  if (!isbn10) return "";
+  const url = `${AMAZON_COVER}/${isbn10}.jpg`;
+  const res = await qa.obsidian.requestUrl({ url, method: "HEAD", throw: false });
+  if (res.status < 200 || res.status >= 300) return "";
+  const len = Number(res.headers["content-length"] ?? "0");
+  return len > 100 ? url : "";
+};
+
 const parseOpenLibraryCover = (json: string, isbn: string): string => {
   try {
     const data = JSON.parse(json) as Record<
@@ -320,11 +344,12 @@ const fetch_book = async (qa: Qa): Promise<string> => {
     method: "GET",
     throw: false,
   });
-  const [ndlRes, openBdRes, googleRes, openLibRes] = await Promise.all([
+  const [ndlRes, openBdRes, googleRes, openLibRes, amazonCover] = await Promise.all([
     ndlReq,
     openBdReq,
     googleReq,
     openLibReq,
+    fetchAmazonCover(qa, isbn),
   ]);
 
   const ndl = ndlRes.status >= 200 && ndlRes.status < 300 ? parseNdl(ndlRes.text) : null;
@@ -363,7 +388,9 @@ const fetch_book = async (qa: Qa): Promise<string> => {
   v.published = published ?? "";
   v.language = ndl?.language ?? "";
   v.ndc10 = ndl?.ndc10 ?? "";
-  v.thumbnail = openBd?.cover || googleCover || openLibCover || "";
+  // Priority: openBD (official JP data) > Amazon JP (broad JP coverage) >
+  // Google Books > Open Library.
+  v.thumbnail = openBd?.cover || amazonCover || googleCover || openLibCover || "";
 
   return "";
 };
