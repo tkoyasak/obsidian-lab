@@ -88,6 +88,26 @@ const dateSpecificity = (d: string | null): number => {
   return digits.filter(Boolean).length;
 };
 
+// --- filename sanitization -------------------------------------------------
+
+// Obsidian rejects file names containing \ / : ; other characters are also
+// problematic across filesystems. Substitute the full-width equivalent so the
+// title stays visually intact (e.g. "Foo : Bar" -> "Foo ： Bar").
+const FILENAME_CHAR_MAP: Record<string, string> = {
+  "\\": "＼",
+  "/": "／",
+  ":": "：",
+  "*": "＊",
+  "?": "？",
+  '"': "”",
+  "<": "＜",
+  ">": "＞",
+  "|": "｜",
+};
+
+const sanitizeFilename = (s: string): string =>
+  s.replace(/[\\/:*?"<>|]/g, (c) => FILENAME_CHAR_MAP[c] ?? "");
+
 // --- DOM helpers (namespace-tolerant) --------------------------------------
 
 const localName = (n: string): string => {
@@ -274,6 +294,8 @@ const fetch_book = async (qa: Qa): Promise<string> => {
   v.isbn = isbn;
   v.ndl_url = ndl?.ndl_url ?? "";
   v.title = ndl?.title ?? "";
+  // Filename-safe variant for File Name Format (Obsidian forbids \ / :).
+  v.title_filename = sanitizeFilename(ndl?.title ?? "");
   // Raw arrays — QuickAdd's Template Property Types (enableTemplatePropertyTypes)
   // renders them as YAML lists when they sit as the bare value of a frontmatter
   // key (e.g. `authors: {{VALUE:authors}}`).
