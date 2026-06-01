@@ -2,8 +2,9 @@
 //
 // NDL Search (SRU, recordSchema=dcndl) is the primary bibliographic source;
 // openBD supplements the cover image only. Designed to run as a QuickAdd macro
-// before the Book Template expands {{VALUE:...}} placeholders. The macro itself
-// returns an empty string; everything is delivered via qa.variables.
+// before the Book Template expands {{VALUE:...}} placeholders. The macro is
+// referenced from the File Name Format and returns the note filename directly
+// (『title』 authors); every other field is delivered via qa.variables.
 
 const NDL_SRU = "https://ndlsearch.ndl.go.jp/api/sru";
 const OPENBD_GET = "https://api.openbd.jp/v1/get";
@@ -121,6 +122,11 @@ const FILENAME_CHAR_MAP: Record<string, string> = {
 
 const sanitizeFilename = (s: string): string =>
   s.replace(/[\\/:*?"<>|]/g, (c) => FILENAME_CHAR_MAP[c] ?? "");
+
+// The macro return value becomes the note filename. Wrap the sanitized title in
+// 『』 and append comma-joined authors: 『title』 author1, author2.
+const buildFilename = (title: string, authors: string[]): string =>
+  `『${sanitizeFilename(title)}』 ${authors.join(", ")}`;
 
 // --- DOM helpers (namespace-tolerant) --------------------------------------
 
@@ -311,10 +317,16 @@ const parseOpenLibraryCover = (json: string, isbn: string): string => {
 // --- main ------------------------------------------------------------------
 
 const fetch_book = async (qa: Qa): Promise<string> => {
-  // QuickAdd runs macros referenced in both the file name format and the
-  // template body, sharing variables across the two passes. Skip the second
-  // invocation so the ISBN prompt and HTTP fetches only happen once.
-  if (typeof qa.variables.isbn === "string" && qa.variables.isbn) return "";
+  // The macro can be evaluated more than once while QuickAdd resolves the file
+  // name and template body, sharing variables across passes. On any rerun, skip
+  // the ISBN prompt and HTTP fetches and just rebuild the filename from the
+  // variables already set.
+  if (typeof qa.variables.isbn === "string" && qa.variables.isbn) {
+    return buildFilename(
+      (qa.variables.title as string) ?? "",
+      (qa.variables.authors as string[]) ?? [],
+    );
+  }
 
   const input = (await qa.quickAddApi.inputPrompt("ISBN")) ?? "";
   const isbn = normalizeIsbn(input);
@@ -375,15 +387,11 @@ const fetch_book = async (qa: Qa): Promise<string> => {
   v.isbn = isbn;
   v.ndl_url = ndl?.ndl_url ?? "";
   v.title = ndl?.title ?? "";
-  // Filename-safe variant for File Name Format (Obsidian forbids \ / :).
-  v.title_filename = sanitizeFilename(ndl?.title ?? "");
   // Raw arrays — QuickAdd's Template Property Types (enableTemplatePropertyTypes)
   // renders them as YAML lists when they sit as the bare value of a frontmatter
   // key (e.g. `authors: {{VALUE:authors}}`).
   v.authors = ndl?.authors ?? [];
   v.translaters = ndl?.translaters ?? [];
-  // Comma-joined inline form for scalar contexts like File Name Format.
-  v.authors_inline = (ndl?.authors ?? []).join(", ");
   v.publisher = ndl?.publisher ?? "";
   v.published = published ?? "";
   v.language = ndl?.language ?? "";
@@ -392,7 +400,7 @@ const fetch_book = async (qa: Qa): Promise<string> => {
   // Google Books > Open Library.
   v.thumbnail = openBd?.cover || amazonCover || googleCover || openLibCover || "";
 
-  return "";
+  return buildFilename(ndl?.title ?? "", ndl?.authors ?? []);
 };
 
 module.exports = fetch_book;
