@@ -3,21 +3,17 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-
     flake-parts.url = "github:hercules-ci/flake-parts";
-
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     git-hooks = {
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     crane.url = "github:ipetkov/crane";
-
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -95,69 +91,6 @@
             overlays = [ inputs.rust-overlay.overlays.default ];
           };
 
-          # git-hooks.nix — replaces the former `prek` setup. Tools are
-          # referenced by store path so hooks resolve regardless of PATH;
-          # the bun/cargo hooks additionally need project deps
-          # (node_modules / crate cache), so they are meant to run at commit
-          # time inside the devShell, not in a hermetic `nix flake check`.
-          # dist holds committed build artifacts — exclude from every hook so
-          # tools aren't handed batches that are entirely ignored.
-          pre-commit.settings.excludes = [ "(^|/)dist/" ];
-          pre-commit.settings.hooks = {
-            # All formatting runs through treefmt (rustfmt / oxfmt / pkl),
-            # dispatched per staged file by extension.
-            treefmt = {
-              enable = true;
-              package = config.treefmt.build.wrapper;
-            };
-
-            # Whole-tree checks (pass_filenames = false): `always_run` so
-            # they fire on every commit rather than depending on which file
-            # types happen to be staged.
-            gitleaks = {
-              enable = true;
-              entry = "${pkgs.gitleaks}/bin/gitleaks git --pre-commit --redact --staged";
-              pass_filenames = false;
-              always_run = true;
-            };
-
-            # JS/TS (oxc) lint — git-hooks.nix built-in (nixpkgs oxlint, which
-            # bundles tsgolint), over staged js/ts files.
-            oxlint = {
-              enable = true;
-              settings.configPath = ".oxlintrc.json";
-            };
-
-            # Rust (cargo workspace) — only run when *.rs files are staged.
-            # clippy is git-hooks.nix's built-in (wraps cargo-clippy with cargo
-            # on PATH); cargo-test has no built-in, so it stays a cargoHook.
-            clippy = {
-              enable = true;
-              packageOverrides = {
-                cargo = rustToolchain;
-                clippy = rustToolchain;
-              };
-              settings = {
-                denyWarnings = true;
-                extraArgs = "--workspace --all-targets";
-              };
-            };
-            cargo-test = {
-              enable = true;
-              name = "cargo test";
-              entry = cargoHook "cargo-test" "cargo test --workspace";
-              types = [ "rust" ];
-              pass_filenames = false;
-            };
-
-            # One guard per dist-producing package, fired only when that
-            # package's own files are staged. Mirrors Taskfile.pkl's
-            # build:<package> tasks.
-            dist-plugin-scripts = lib.distSyncHook "plugin-scripts";
-            dist-web-clipper = lib.distSyncHook "web-clipper";
-            dist-properties-schemas = lib.distSyncHook "properties-schemas";
-          };
-
           # treefmt — single source of truth for formatting, used by the
           # pre-commit hook above and by `nix fmt`. oxfmt (from nixpkgs) still
           # reads `.oxfmtrc.json` for dist ignore and import sort.
@@ -181,6 +114,57 @@
                 "*.pkl"
                 "PklProject"
               ];
+            };
+          };
+
+          # git-hooks.nix — replaces the former `prek` setup. Tools are
+          # referenced by store path so hooks resolve regardless of PATH;
+          # the bun/cargo hooks additionally need project deps
+          # (node_modules / crate cache), so they are meant to run at commit
+          # time inside the devShell, not in a hermetic `nix flake check`.
+          # dist holds committed build artifacts — exclude from every hook so
+          # tools aren't handed batches that are entirely ignored.
+          pre-commit.settings = {
+            excludes = [ "(^|/)dist/" ];
+            hooks = {
+              treefmt.enable = true;
+              oxlint.enable = true;
+
+              gitleaks = {
+                enable = true;
+                entry = "${pkgs.gitleaks}/bin/gitleaks git --pre-commit --redact --staged";
+                pass_filenames = false;
+                always_run = true;
+              };
+
+              # Rust (cargo workspace) — only run when *.rs files are staged.
+              # clippy is git-hooks.nix's built-in (wraps cargo-clippy with cargo
+              # on PATH); cargo-test has no built-in, so it stays a cargoHook.
+              clippy = {
+                enable = true;
+                packageOverrides = {
+                  cargo = rustToolchain;
+                  clippy = rustToolchain;
+                };
+                settings = {
+                  denyWarnings = true;
+                  extraArgs = "--workspace --all-targets";
+                };
+              };
+              cargo-test = {
+                enable = true;
+                name = "cargo test";
+                entry = cargoHook "cargo-test" "cargo test --workspace";
+                types = [ "rust" ];
+                pass_filenames = false;
+              };
+
+              # One guard per dist-producing package, fired only when that
+              # package's own files are staged. Mirrors Taskfile.pkl's
+              # build:<package> tasks.
+              dist-plugin-scripts = lib.distSyncHook "plugin-scripts";
+              dist-web-clipper = lib.distSyncHook "web-clipper";
+              dist-properties-schemas = lib.distSyncHook "properties-schemas";
             };
           };
 
@@ -219,14 +203,22 @@
             };
 
           # `nix develop` / direnv — shellHook installs the git pre-commit hook.
-          devShells.default = pkgs.mkShell {
+          devShells.default = pkgs.mkShellNoCC {
             inputsFrom = [ config.pre-commit.devShell ];
-            packages = [
-              pkgs.bun
-              pkgs.pkl
-              pkgs.gitleaks
-              rustToolchain
-            ];
+            packages =
+              with pkgs;
+              [
+                # bun
+                gitleaks
+                # nodejs
+                oxfmt
+                oxlint
+                pkl
+                typescript-go
+              ]
+              ++ [
+                rustToolchain
+              ];
           };
         };
     };

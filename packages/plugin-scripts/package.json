@@ -3,12 +3,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "ulid": "3.0.2"
-  },
-  "devDependencies": {
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "obsidian": "catalog:",
-    "typescript": "catalog:"
+    "ulid": "3.0.2"
   }
 }
