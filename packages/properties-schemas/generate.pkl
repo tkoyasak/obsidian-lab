@@ -50,7 +50,16 @@ local base: JsonSchema = new {
   title = "Vault frontmatter — common base"
   type = "object"
   additionalProperties = true
-  required { "created"; "modified"; "content_id"; "visibility"; "categories"; "tags" }
+  required {
+    "created"
+    "modified"
+    "content_id"
+    "visibility"
+    "thumbnail"
+    "description"
+    "categories"
+    "tags"
+  }
   properties {
     ["created"] = dateString
     ["modified"] = dateString
@@ -81,7 +90,18 @@ local taskConditional: JsonSchema.Schema = new {
     }
   }
   then {
-    required { "status"; "priority" }
+    required {
+      "project"
+      "status"
+      "started"
+      "done"
+      "review"
+      "due"
+      "contexts"
+      "waiting_for"
+      "estimate"
+      "priority"
+    }
     properties {
       ["project"] = nullableString
       ["status"] {
@@ -96,6 +116,8 @@ local taskConditional: JsonSchema.Schema = new {
           "Cancelled"
         }
       }
+      ["started"] = nullableDate
+      ["done"] = nullableDate
       ["review"] = nullableDate
       ["due"] = nullableDate
       ["contexts"] {
@@ -134,10 +156,45 @@ local taskConditional: JsonSchema.Schema = new {
   }
 }
 
+local readingConditional: JsonSchema.Schema = new {
+  $comment =
+    "Notes categorized as [[Reading]] track a book being read; they must also be [[Task]]. See `vault/Templates/Reading Template.md`."
+  `if` {
+    required { "categories" }
+    properties {
+      ["categories"] {
+        contains { `const` = "[[Reading]]" }
+      }
+    }
+  }
+  then {
+    required { "categories"; "book"; "rating" }
+    properties {
+      ["categories"] {
+        $comment = "[[Reading]] implies [[Task]] (reuses the task machinery)."
+        contains { `const` = "[[Task]]" }
+      }
+      ["book"] {
+        $comment =
+          "Wiki link to the bibliographic [[Book]] note in References/. Required, non-null."
+        type = "string"
+        pattern = #"^\[\[.+\]\]$"#
+      }
+      ["rating"] {
+        $comment = "Loose 1-5 indicator; null until rated. No fixed anchor definitions."
+        type = new Listing<JsonSchema.JsonSchemaTypeName> { "integer"; "null" }
+        minimum = 1
+        maximum = 5
+      }
+    }
+  }
+}
+
 local notes: JsonSchema = (base) {
   title = "Note frontmatter"
   allOf {
     taskConditional
+    readingConditional
   }
 }
 
@@ -160,7 +217,17 @@ local bookConditional: JsonSchema.Schema = new {
     }
   }
   then {
-    required { "title" }
+    required {
+      "isbn"
+      "ndl_url"
+      "title"
+      "authors"
+      "translaters"
+      "publisher"
+      "published"
+      "language"
+      "ndc10"
+    }
     properties {
       ["isbn"] {
         $comment = "ISBN-13: 13 digits, prefix 978 or 979."
@@ -190,7 +257,6 @@ local bookConditional: JsonSchema.Schema = new {
       ["published"] = nullableDate
       ["language"] = nullableString
       ["ndc10"] = nullableString
-      ["label"] = nullableString
     }
   }
 }
@@ -198,7 +264,8 @@ local bookConditional: JsonSchema.Schema = new {
 local references: JsonSchema = (base) {
   title = "Reference note frontmatter"
   $comment =
-    "References add an optional `url` field. Nullable for cases where the source is offline / handwritten / oral."
+    "References add a `url` field. Required key; nullable value for cases where the source is offline / handwritten / oral."
+  required { "url" }
   properties {
     ["url"] {
       type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }

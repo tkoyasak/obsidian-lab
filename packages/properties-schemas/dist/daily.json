@@ -62,6 +62,8 @@
     "modified",
     "content_id",
     "visibility",
+    "thumbnail",
+    "description",
     "categories",
     "tags"
   ]

@@ -62,6 +62,8 @@
     "modified",
     "content_id",
     "visibility",
+    "thumbnail",
+    "description",
     "categories",
     "tags"
   ],
@@ -99,6 +101,20 @@
               "Done",
               "Cancelled"
             ]
+          },
+          "started": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "done": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
           },
           "review": {
             "type": [
@@ -139,7 +155,15 @@
           }
         },
         "required": [
+          "project",
           "status",
+          "started",
+          "done",
+          "review",
+          "due",
+          "contexts",
+          "waiting_for",
+          "estimate",
           "priority"
         ],
         "allOf": [
@@ -170,6 +194,50 @@
               ]
             }
           }
+        ]
+      }
+    },
+    {
+      "$comment": "Notes categorized as [[Reading]] track a book being read; they must also be [[Task]]. See `vault/Templates/Reading Template.md`.",
+      "if": {
+        "properties": {
+          "categories": {
+            "contains": {
+              "const": "[[Reading]]"
+            }
+          }
+        },
+        "required": [
+          "categories"
+        ]
+      },
+      "then": {
+        "properties": {
+          "categories": {
+            "$comment": "[[Reading]] implies [[Task]] (reuses the task machinery).",
+            "contains": {
+              "const": "[[Task]]"
+            }
+          },
+          "book": {
+            "$comment": "Wiki link to the bibliographic [[Book]] note in References/. Required, non-null.",
+            "type": "string",
+            "pattern": "^\\[\\[.+\\]\\]$"
+          },
+          "rating": {
+            "$comment": "Loose 1-5 indicator; null until rated. No fixed anchor definitions.",
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 5
+          }
+        },
+        "required": [
+          "categories",
+          "book",
+          "rating"
         ]
       }
     }

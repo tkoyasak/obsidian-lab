@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "References add an optional `url` field. Nullable for cases where the source is offline / handwritten / oral.",
+  "$comment": "References add a `url` field. Required key; nullable value for cases where the source is offline / handwritten / oral.",
   "title": "Reference note frontmatter",
   "type": "object",
   "properties": {
@@ -70,8 +70,11 @@
     "modified",
     "content_id",
     "visibility",
+    "thumbnail",
+    "description",
     "categories",
-    "tags"
+    "tags",
+    "url"
   ],
   "allOf": [
     {
@@ -144,16 +147,18 @@
               "string",
               "null"
             ]
-          },
-          "label": {
-            "type": [
-              "string",
-              "null"
-            ]
           }
         },
         "required": [
-          "title"
+          "isbn",
+          "ndl_url",
+          "title",
+          "authors",
+          "translaters",
+          "publisher",
+          "published",
+          "language",
+          "ndc10"
         ]
       }
     }
