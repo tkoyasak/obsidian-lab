@@ -1,1 +1,0 @@
-var D=(x)=>{let j="",v=0,q=0;for(let A of x){v=v<<8|A,q+=8;while(q>=5)q-=5,j+="0123456789ABCDEFGHJKMNPQRSTVWXYZ".charAt(v>>q&31)}if(q>0)j+="0123456789ABCDEFGHJKMNPQRSTVWXYZ".charAt(v<<5-q&31);return j},E=(x=16)=>{let j=new Uint8Array(x);return crypto.getRandomValues(j),D(j)};module.exports=E;
