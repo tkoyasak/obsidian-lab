@@ -6,6 +6,8 @@
 // referenced from the File Name Format and returns the note filename directly
 // (『title』 authors); every other field is delivered via qa.variables.
 
+import { sanitizeFilename } from "./filename";
+
 const NDL_SRU = "https://ndlsearch.ndl.go.jp/api/sru";
 const OPENBD_GET = "https://api.openbd.jp/v1/get";
 const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1/volumes";
@@ -103,25 +105,7 @@ const dateSpecificity = (d: string | null): number => {
   return digits.filter(Boolean).length;
 };
 
-// --- filename sanitization -------------------------------------------------
-
-// Obsidian rejects file names containing \ / : ; other characters are also
-// problematic across filesystems. Substitute the full-width equivalent so the
-// title stays visually intact (e.g. "Foo : Bar" -> "Foo ： Bar").
-const FILENAME_CHAR_MAP: Record<string, string> = {
-  "\\": "＼",
-  "/": "／",
-  ":": "：",
-  "*": "＊",
-  "?": "？",
-  '"': "”",
-  "<": "＜",
-  ">": "＞",
-  "|": "｜",
-};
-
-const sanitizeFilename = (s: string): string =>
-  s.replace(/[\\/:*?"<>|]/g, (c) => FILENAME_CHAR_MAP[c] ?? "");
+// --- filename --------------------------------------------------------------
 
 // The macro return value becomes the note filename. Wrap the sanitized title in
 // 『』 and append comma-joined authors: 『title』 author1, author2.
