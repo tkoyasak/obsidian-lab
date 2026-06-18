@@ -1,3 +1,8 @@
+// Turn bare URLs in the input into Markdown links titled by each page's
+// <title>. Designed to run as a QuickAdd macro: reads qa.variables.input (or
+// prompts when empty), fetches titles in parallel, and writes the result back.
+// URLs whose title can't be fetched are left untouched.
+
 const URL_REGEX = /https?:\/\/[^\s<>"'`]+/g;
 const TRAILING_PUNCT_REGEX = /[.,;:!?)\]}>'"`]+$/;
 

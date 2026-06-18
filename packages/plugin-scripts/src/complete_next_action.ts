@@ -1,3 +1,7 @@
+// Complete the open task on the cursor line. Designed to run as a QuickAdd
+// macro: the current line must be an open `- [ ]` task tagged `#next`; the tag
+// is stripped and the checkbox flipped to `[x]`.
+
 const TASK_OPEN_REGEX = /^(\s*[-*]\s+)\[ \](\s.*)$/;
 const NEXT_TAG_REGEX = /(?:^|\s)#next(?![\w/-])/;
 

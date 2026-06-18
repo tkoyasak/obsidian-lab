@@ -1,3 +1,7 @@
+// Rename a new note to a fresh ULID and, once all templates have run, write its
+// id/created/modified/title frontmatter, returning the ULID so the template can
+// reference it. Designed to run as a Templater user script.
+
 import { ulid } from "ulid";
 
 const unique_note = async (tp: Tp) => {

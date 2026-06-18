@@ -1,4 +1,4 @@
-// Fetches book metadata by ISBN and fills QuickAdd template variables.
+// Fetch book metadata by ISBN and fill QuickAdd template variables.
 //
 // NDL Search (SRU, recordSchema=dcndl) is the primary bibliographic source;
 // openBD supplements the cover image only. Designed to run as a QuickAdd macro

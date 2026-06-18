@@ -1,4 +1,4 @@
-// Creates a Reading note linked to a bibliographic [[Book]] note. Designed to
+// Create a Reading note linked to a bibliographic [[Book]] note. Designed to
 // run as a QuickAdd macro: the return value becomes the note filename
 // (『title』を読む) and qa.variables.book carries the wiki link to the book.
 //

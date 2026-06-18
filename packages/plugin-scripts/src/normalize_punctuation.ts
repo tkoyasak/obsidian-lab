@@ -2,6 +2,7 @@
 // file's body. `、` -> `，` and `。` -> `．`. The frontmatter block is left
 // untouched. Each swap is a 1:1 character replacement, so offsets are preserved
 // and the cursor stays put.
+
 const normalize_punctuation = (qa: Qa): void => {
   const editor = qa.app.workspace.activeEditor?.editor;
   const file = qa.app.workspace.activeEditor?.file;
