@@ -1,10 +1,10 @@
 // Fetch book metadata by ISBN and fill QuickAdd template variables.
 //
 // NDL Search (SRU, recordSchema=dcndl) is the primary bibliographic source;
-// openBD supplements the cover image only. Designed to run as a QuickAdd macro
-// before the Book Template expands {{VALUE:...}} placeholders. The macro is
-// referenced from the File Name Format and returns the note filename directly
-// (『title』 authors); every other field is delivered via qa.variables.
+// openBD supplements the cover image only. Designed to run as a Templater user
+// function: the template calls it once, renames the note to the returned
+// `filename` (『title』 authors) and fills frontmatter from the other returned
+// bibliographic fields.
 
 import { sanitizeFilename } from "./filename";
 
@@ -275,11 +275,11 @@ const parseGoogleCover = (json: string): string => {
 
 // Amazon serves a ~43-byte 1x1 placeholder when the cover image is missing,
 // so look at content-length via HEAD rather than fetching the bytes.
-const fetchAmazonCover = async (qa: Qa, isbn13: string): Promise<string> => {
+const fetchAmazonCover = async (tp: Tp, isbn13: string): Promise<string> => {
   const isbn10 = isbn13to10(isbn13);
   if (!isbn10) return "";
   const url = `${AMAZON_COVER}/${isbn10}.jpg`;
-  const res = await qa.obsidian.requestUrl({ url, method: "HEAD", throw: false });
+  const res = await tp.obsidian.requestUrl({ url, method: "HEAD", throw: false });
   if (res.status < 200 || res.status >= 300) return "";
   const len = Number(res.headers["content-length"] ?? "0");
   return len > 100 ? url : "";
@@ -300,42 +300,45 @@ const parseOpenLibraryCover = (json: string, isbn: string): string => {
 
 // --- main ------------------------------------------------------------------
 
-const fetch_book = async (qa: Qa): Promise<string> => {
-  // The macro can be evaluated more than once while QuickAdd resolves the file
-  // name and template body, sharing variables across passes. On any rerun, skip
-  // the ISBN prompt and HTTP fetches and just rebuild the filename from the
-  // variables already set.
-  if (typeof qa.variables.isbn === "string" && qa.variables.isbn) {
-    return buildFilename(
-      (qa.variables.title as string) ?? "",
-      (qa.variables.authors as string[]) ?? [],
-    );
-  }
+interface Book {
+  isbn: string;
+  ndl_url: string;
+  title: string;
+  authors: string[];
+  translaters: string[];
+  publisher: string;
+  published: string;
+  language: string;
+  ndc10: string;
+  thumbnail: string;
+  filename: string;
+}
 
-  const input = (await qa.quickAddApi.inputPrompt("ISBN")) ?? "";
+const fetch_book = async (tp: Tp): Promise<Book> => {
+  const input = (await tp.system.prompt("ISBN", "", true, false)) ?? "";
   const isbn = normalizeIsbn(input);
-  if (!isbn) qa.abort("Invalid ISBN");
+  if (!isbn) throw new Error("Invalid ISBN");
 
-  const ndlReq = qa.obsidian.requestUrl({
+  const ndlReq = tp.obsidian.requestUrl({
     url:
       `${NDL_SRU}?operation=searchRetrieve&query=${encodeURIComponent(`isbn=${isbn}`)}` +
       "&recordSchema=dcndl&maximumRecords=1&recordPacking=xml",
     method: "GET",
     throw: false,
   });
-  const openBdReq = qa.obsidian.requestUrl({
+  const openBdReq = tp.obsidian.requestUrl({
     url: `${OPENBD_GET}?isbn=${isbn}`,
     method: "GET",
     throw: false,
   });
   // Cover fallbacks fired in parallel; openBD often has no cover for older or
   // technical books, where Google Books / Open Library typically do.
-  const googleReq = qa.obsidian.requestUrl({
+  const googleReq = tp.obsidian.requestUrl({
     url: `${GOOGLE_BOOKS}?q=isbn:${isbn}&fields=items(volumeInfo/imageLinks)`,
     method: "GET",
     throw: false,
   });
-  const openLibReq = qa.obsidian.requestUrl({
+  const openLibReq = tp.obsidian.requestUrl({
     url: `${OPENLIBRARY_BOOKS}?bibkeys=ISBN:${isbn}&format=json&jscmd=data`,
     method: "GET",
     throw: false,
@@ -345,7 +348,7 @@ const fetch_book = async (qa: Qa): Promise<string> => {
     openBdReq,
     googleReq,
     openLibReq,
-    fetchAmazonCover(qa, isbn),
+    fetchAmazonCover(tp, isbn),
   ]);
 
   const ndl = ndlRes.status >= 200 && ndlRes.status < 300 ? parseNdl(ndlRes.text) : null;
@@ -358,7 +361,7 @@ const fetch_book = async (qa: Qa): Promise<string> => {
       ? parseOpenLibraryCover(openLibRes.text, isbn)
       : "";
 
-  if (!ndl && !openBd) qa.abort("Book not found");
+  if (!ndl && !openBd) throw new Error("Book not found");
 
   // openBD pubdate can be more precise than NDL's year/month.
   let published = ndl?.published ?? null;
@@ -367,24 +370,23 @@ const fetch_book = async (qa: Qa): Promise<string> => {
     published = openBdPublished;
   }
 
-  const v = qa.variables;
-  v.isbn = isbn;
-  v.ndl_url = ndl?.ndl_url ?? "";
-  v.title = ndl?.title ?? "";
-  // Raw arrays — QuickAdd's Template Property Types (enableTemplatePropertyTypes)
-  // renders them as YAML lists when they sit as the bare value of a frontmatter
-  // key (e.g. `authors: {{VALUE:authors}}`).
-  v.authors = ndl?.authors ?? [];
-  v.translaters = ndl?.translaters ?? [];
-  v.publisher = ndl?.publisher ?? "";
-  v.published = published ?? "";
-  v.language = ndl?.language ?? "";
-  v.ndc10 = ndl?.ndc10 ?? "";
-  // Priority: openBD (official JP data) > Amazon JP (broad JP coverage) >
-  // Google Books > Open Library.
-  v.thumbnail = openBd?.cover || amazonCover || googleCover || openLibCover || "";
-
-  return buildFilename(ndl?.title ?? "", ndl?.authors ?? []);
+  const title = ndl?.title ?? "";
+  const authors = ndl?.authors ?? [];
+  return {
+    isbn,
+    ndl_url: ndl?.ndl_url ?? "",
+    title,
+    authors,
+    translaters: ndl?.translaters ?? [],
+    publisher: ndl?.publisher ?? "",
+    published: published ?? "",
+    language: ndl?.language ?? "",
+    ndc10: ndl?.ndc10 ?? "",
+    // Priority: openBD (official JP data) > Amazon JP (broad JP coverage) >
+    // Google Books > Open Library.
+    thumbnail: openBd?.cover || amazonCover || googleCover || openLibCover || "",
+    filename: buildFilename(title, authors),
+  };
 };
 
 module.exports = fetch_book;
