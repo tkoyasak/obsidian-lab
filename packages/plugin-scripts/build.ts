@@ -9,6 +9,7 @@ const groups: Record<string, string[]> = {
   quickadd: [
     "complete_next_action.ts",
     "fetch_book.ts",
+    "new_highlight.ts",
     "new_reading.ts",
     "normalize_punctuation.ts",
     "resolve_urls.ts",
