@@ -7,7 +7,12 @@ import process from "node:process";
 // build a separate bundle set per plugin into dist/<plugin>/.
 const groups: Record<string, string[]> = {
   templater: ["fetch_book.ts", "new_highlight.ts", "new_reading.ts", "tid.ts"],
-  quickadd: ["complete_next_action.ts", "normalize_punctuation.ts", "resolve_urls.ts"],
+  quickadd: [
+    "complete_next_action.ts",
+    "normalize_punctuation.ts",
+    "open_by_category.ts",
+    "resolve_urls.ts",
+  ],
 };
 
 for (const [plugin, files] of Object.entries(groups)) {
