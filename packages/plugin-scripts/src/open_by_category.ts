@@ -26,8 +26,10 @@ const open_by_category = async (qa: Qa): Promise<void> => {
   const categories = [...byCategory.keys()].sort((a, b) => a.localeCompare(b, "ja"));
   if (categories.length === 0) qa.abort("No categories found");
 
+  // Show the bare link text (e.g. "Book" for "[[Book]]") but keep the raw value
+  // as the selection so it still matches the frontmatter entries.
   const category: string = await qa.quickAddApi.suggester(
-    categories,
+    categories.map((c) => c.replace(/^\[\[|\]\]$/g, "")),
     categories,
     "Select a category",
   );
@@ -40,7 +42,7 @@ const open_by_category = async (qa: Qa): Promise<void> => {
   const note: TFile = await qa.quickAddApi.suggester(
     notes.map((f) => f.basename),
     notes,
-    `Open a note in ${category}`,
+    `Open a note in ${category.replace(/^\[\[|\]\]$/g, "")}`,
   );
   if (!note) qa.abort("No note selected");
 
