@@ -1,6 +1,6 @@
 amends "@obsidian.webClipper/Template.pkl"
 
-import "props.pkl"
+import "../props.pkl"
 
 name = "Default"
 

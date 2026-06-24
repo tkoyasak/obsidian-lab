@@ -1,6 +1,6 @@
 amends "default.pkl"
 
-import "props.pkl"
+import "../props.pkl"
 
 name = "X (Twitter) Post"
 
