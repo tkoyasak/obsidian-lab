@@ -1,5 +1,7 @@
 amends "@obsidian.webClipper/Template.pkl"
 
+import "props.pkl"
+
 name = "Default"
 
 behavior = "create"
@@ -13,69 +15,7 @@ noteContentFormat =
 
   """
 
-properties =
-  List(
-    new Property {
-      name = "tags"
-      value = "untagged"
-      type = "multitext"
-    },
-    new Property {
-      name = "created"
-      value = "{{date|date:\"YYYY-MM-DD\"}}"
-      type = "date"
-    },
-    new Property {
-      name = "modified"
-      value = "{{date|date:\"YYYY-MM-DD\"}}"
-      type = "date"
-    },
-    new Property {
-      name = "content_id"
-      value = "<% tp.user.ulid() %>"
-      type = "text"
-    },
-    new Property {
-      name = "visibility"
-      value = "private"
-      type = "text"
-    },
-    new Property {
-      name = "thumbnail"
-      value = "{{image}}"
-      type = "text"
-    },
-    new Property {
-      name = "description"
-      value = "{{description}}"
-      type = "text"
-    },
-    new Property {
-      name = "categories"
-      value = "\"[[Clippings]]\""
-      type = "multitext"
-    },
-    new Property {
-      name = "url"
-      value = "{{url}}"
-      type = "text"
-    },
-    new Property {
-      name = "published"
-      value = "{{published}}"
-      type = "text"
-    },
-    new Property {
-      name = "title"
-      value = "{{title}}"
-      type = "text"
-    },
-    new Property {
-      name = "author"
-      value = "{{author}}"
-      type = "multitext"
-    },
-  )
+properties = props.common.toMap().values
 
 triggers = List()
 

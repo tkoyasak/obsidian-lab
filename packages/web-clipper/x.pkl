@@ -1,8 +1,8 @@
-amends "@obsidian.webClipper/Template.pkl"
+amends "default.pkl"
+
+import "props.pkl"
 
 name = "X (Twitter) Post"
-
-behavior = "create"
 
 noteContentFormat =
   """
@@ -16,81 +16,28 @@ noteContentFormat =
   """
 
 properties =
-  List(
-    new Property {
-      name = "tags"
-      value = "untagged"
-      type = "multitext"
-    },
-    new Property {
-      name = "created"
-      value = "{{date|date:\"YYYY-MM-DD\"}}"
-      type = "date"
-    },
-    new Property {
-      name = "modified"
-      value = "{{date|date:\"YYYY-MM-DD\"}}"
-      type = "date"
-    },
-    new Property {
-      name = "content_id"
-      value = "<% tp.user.ulid() %>"
-      type = "text"
-    },
-    new Property {
-      name = "visibility"
-      value = "private"
-      type = "text"
-    },
-    new Property {
-      name = "thumbnail"
+  (props.common) {
+    ["thumbnail"] {
       value = "{{selector:img[alt=\"画像\"]?src|first}}"
-      type = "text"
-    },
-    new Property {
-      name = "description"
-      value = "{{description}}"
-      type = "text"
-    },
-    new Property {
-      name = "categories"
+    }
+    ["categories"] {
       value = "\"[[Clippings]]\", \"[[X (Twitter) Posts]]\""
-      type = "multitext"
-    },
-    new Property {
-      name = "url"
-      value = "{{url}}"
-      type = "text"
-    },
-    new Property {
-      name = "published"
+    }
+    ["published"] {
       value = "{{published|date}}"
-      type = "text"
-    },
-    new Property {
-      name = "title"
-      value = "{{title}}"
-      type = "text"
-    },
-    new Property {
-      name = "author"
+    }
+    ["authors"] {
       value = "{{selector:div[data-testid=\"User-Name\"] span|first}}"
-      type = "multitext"
-    },
-    new Property {
+    }
+    ["handle"] {
       name = "handle"
       value = #"{{url|split:\"/\"|slice:3,-2}}"#
       type = "text"
-    },
-    new Property {
-      name = "profile"
-      value = #"https://x.com/{{url|split:\"/\"|slice:3,-2}}"#
-      type = "text"
-    },
-  )
+    }
+  }
+    .toMap()
+    .values
 
 triggers = List(#"/^https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/\d+$/"#)
 
 noteNameFormat = "{{title}} - {{published|date:\"YYYY-MM-DD\"}}"
-
-path = "Clippings"

@@ -23,7 +23,7 @@ local buildWebClipper: Task = new {
   name = "build:web-clipper"
   description = "pkl eval web-clipper templates → dist/*.json"
   workdir = "packages/web-clipper"
-  cmd = "pkl eval -f json ./*.pkl -o ./dist/%{moduleName}.json"
+  cmd = "pkl eval -f json ./default.pkl ./x.pkl -o ./dist/%{moduleName}.json"
   inputs {
     "*.pkl"
     "PklProject"

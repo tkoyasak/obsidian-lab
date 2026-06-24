@@ -1,0 +1,73 @@
+/// Shared Web Clipper properties keyed by name. Templates import this and
+/// derive `properties` via `common.toMap().values`; site templates amend the
+/// mapping inline to override individual entries or append new ones.
+///
+/// The leading eight entries mirror the `base` frontmatter schema in
+/// `packages/properties-schemas/generate.pkl` (same keys and order); the
+/// trailing entries are clipping-specific additions.
+module props
+
+import "@obsidian.webClipper/Template.pkl"
+
+common: Mapping<String, Template.Property> = new {
+  ["created"] {
+    name = "created"
+    value = "{{date|date:\"YYYY-MM-DD\"}}"
+    type = "date"
+  }
+  ["modified"] {
+    name = "modified"
+    value = "{{date|date:\"YYYY-MM-DD\"}}"
+    type = "date"
+  }
+  ["content_id"] {
+    name = "content_id"
+    value = "<% tp.user.tid() %>"
+    type = "text"
+  }
+  ["visibility"] {
+    name = "visibility"
+    value = "private"
+    type = "text"
+  }
+  ["thumbnail"] {
+    name = "thumbnail"
+    value = "{{image}}"
+    type = "text"
+  }
+  ["description"] {
+    name = "description"
+    value = "{{description}}"
+    type = "text"
+  }
+  ["categories"] {
+    name = "categories"
+    value = "\"[[Clippings]]\""
+    type = "multitext"
+  }
+  ["tags"] {
+    name = "tags"
+    value = ""
+    type = "multitext"
+  }
+  ["url"] {
+    name = "url"
+    value = "{{url}}"
+    type = "text"
+  }
+  ["title"] {
+    name = "title"
+    value = "{{title}}"
+    type = "text"
+  }
+  ["authors"] {
+    name = "authors"
+    value = "{{author}}"
+    type = "multitext"
+  }
+  ["published"] {
+    name = "published"
+    value = "{{published}}"
+    type = "text"
+  }
+}
