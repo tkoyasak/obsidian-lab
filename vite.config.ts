@@ -3,11 +3,14 @@ import { defineConfig } from "vite-plus";
 // Rebuild a package, then fail if its committed dist/ is now out of sync.
 const distSync = (pkg: string) => {
   const dir = `packages/${pkg}/dist`;
-  return [
+  // Wrap in `sh -c` so `&&` and `$(...)` are interpreted by a shell; vp's
+  // staged runner passes tokens straight to argv and does not chain commands.
+  const script = [
     `vp run build:${pkg}`,
     `git diff --quiet -- ${dir}`,
     `test -z "$(git ls-files --others --exclude-standard -- ${dir})"`,
   ].join(" && ");
+  return `sh -c '${script}'`;
 };
 
 export default defineConfig({
