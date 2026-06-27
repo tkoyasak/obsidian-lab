@@ -17,6 +17,6 @@ properties = props.common.toMap().values
 
 triggers = List()
 
-noteNameFormat = "{{title}} - {{domain}}"
+noteNameFormat = "{{title}} - {{domain}} {{published|date:\"YYYY-MM-DD\"}}"
 
 path = "Clippings"
