@@ -6,7 +6,7 @@ import process from "node:process";
 // Sources live flat in src/; each plugin loads from its own vault folder, so
 // build a separate bundle set per plugin into dist/<plugin>/.
 const groups: Record<string, string[]> = {
-  templater: ["fetch_book.ts", "new_highlight.ts", "new_reading.ts", "tid.ts"],
+  templater: ["daily_routine.ts", "fetch_book.ts", "new_highlight.ts", "new_reading.ts", "tid.ts"],
   quickadd: [
     "complete_next_action.ts",
     "normalize_punctuation.ts",
