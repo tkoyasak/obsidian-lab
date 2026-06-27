@@ -59,7 +59,14 @@ export default defineConfig({
       "build:plugin-scripts": {
         command: "bun run ./build.ts",
         cwd: "packages/plugin-scripts",
-        input: [{ auto: true }, "!packages/plugin-scripts/dist/**"],
+        // `auto` only traces the command string; build.ts globs src/*.ts at
+        // runtime, so the sources are invisible to it and must be listed
+        // explicitly — otherwise editing a script never busts the cache.
+        input: [
+          { auto: true },
+          "packages/plugin-scripts/src/**",
+          "!packages/plugin-scripts/dist/**",
+        ],
         output: ["packages/plugin-scripts/dist/**"],
       },
       "build:web-clipper": {
