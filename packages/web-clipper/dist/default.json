@@ -2,7 +2,7 @@
   "schemaVersion": "0.1.0",
   "name": "Default",
   "behavior": "create",
-  "noteContentFormat": "\n![(embed)]({{url}})\n\n{{content}}\n",
+  "noteContentFormat": "\n{{content}}\n",
   "properties": [
     {
       "name": "created",
@@ -66,6 +66,6 @@
     }
   ],
   "triggers": [],
-  "noteNameFormat": "{{title}}",
+  "noteNameFormat": "{{title}} - {{domain}}",
   "path": "Clippings"
 }

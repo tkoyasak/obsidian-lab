@@ -9,8 +9,6 @@ behavior = "create"
 noteContentFormat =
   """
 
-  ![(embed)]({{url}})
-
   {{content}}
 
   """
@@ -19,6 +17,6 @@ properties = props.common.toMap().values
 
 triggers = List()
 
-noteNameFormat = "{{title}}"
+noteNameFormat = "{{title}} - {{domain}}"
 
 path = "Clippings"
