@@ -266,12 +266,14 @@ local bookConditional: JsonSchema.Schema = new {
         items {
           type = "string"
         }
+        uniqueItems = true
       }
       ["translaters"] {
         type = "array"
         items {
           type = "string"
         }
+        uniqueItems = true
       }
       ["publisher"] = nullableString
       ["published"] = nullableDate
