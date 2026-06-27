@@ -36,7 +36,7 @@
     },
     {
       "name": "categories",
-      "value": "\"[[Clippings]]\"",
+      "value": "[[Clippings]]",
       "type": "multitext"
     },
     {
@@ -62,7 +62,7 @@
     {
       "name": "published",
       "value": "{{published}}",
-      "type": "text"
+      "type": "datetime"
     }
   ],
   "triggers": [],

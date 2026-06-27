@@ -21,7 +21,7 @@ properties =
       value = "{{selector:img[alt=\"画像\"]?src|first}}"
     }
     ["categories"] {
-      value = "\"[[Clippings]]\", \"[[X (Twitter) Posts]]\""
+      value = "[[Clippings]], [[X (Twitter) Posts]]"
     }
     ["published"] {
       value = "{{published|date}}"
@@ -31,7 +31,7 @@ properties =
     }
     ["handle"] {
       name = "handle"
-      value = #"{{url|split:\"/\"|slice:3,-2}}"#
+      value = "{{url|split:\"/\"|slice:3,-2}}"
       type = "text"
     }
   }

@@ -42,7 +42,7 @@ common: Mapping<String, Template.Property> = new {
   }
   ["categories"] {
     name = "categories"
-    value = "\"[[Clippings]]\""
+    value = "[[Clippings]]"
     type = "multitext"
   }
   ["tags"] {
@@ -68,6 +68,6 @@ common: Mapping<String, Template.Property> = new {
   ["published"] {
     name = "published"
     value = "{{published}}"
-    type = "text"
+    type = "datetime"
   }
 }

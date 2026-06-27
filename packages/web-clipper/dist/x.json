@@ -36,7 +36,7 @@
     },
     {
       "name": "categories",
-      "value": "\"[[Clippings]]\", \"[[X (Twitter) Posts]]\"",
+      "value": "[[Clippings]], [[X (Twitter) Posts]]",
       "type": "multitext"
     },
     {
@@ -62,11 +62,11 @@
     {
       "name": "published",
       "value": "{{published|date}}",
-      "type": "text"
+      "type": "datetime"
     },
     {
       "name": "handle",
-      "value": "{{url|split:\\\"/\\\"|slice:3,-2}}",
+      "value": "{{url|split:\"/\"|slice:3,-2}}",
       "type": "text"
     }
   ],
