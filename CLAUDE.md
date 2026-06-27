@@ -29,32 +29,31 @@ redistributes them as `packages.<name>` so other flakes can consume them.
 ## Commands
 
 ```sh
-nix fmt                 # format everything (treefmt: rustfmt/oxfmt/pkl/nixfmt)
+vp run fmt              # format everything (vp fmt for TS + nix fmt for rust/pkl/nix)
 nix build .#<name>      # gembu, plugin-scripts, css-snippets, raycast-scripts,
                         # web-clipper, properties-schemas
-nix develop             # dev shell; shellHook installs the git pre-commit hook
+nix develop             # dev shell; shellHook runs `vp config` to install hooks
 ```
 
-Regenerate a package's committed `dist/` after editing sources. `pkf`
-([pkfire](https://github.com/mizchi/pkfire)) is the task runner; tasks are
-declared in `Taskfile.pkl` with typed `inputs`/`outputs` so unchanged
-packages hit the content-addressed cache:
+Regenerate a package's committed `dist/` after editing sources. **Vite Task**
+(`vp run`) is the task runner; tasks are declared under `run.tasks` in
+`vite.config.ts` with explicit `output` globs. Unchanged tasks replay from the
+content-addressed cache (auto-tracked input files + archived outputs):
 
 ```sh
-pkf run build                    # all packages + gembu
-pkf run build:plugin-scripts     # bun bundles src → dist/{templater,quickadd}
-pkf run build:web-clipper        # pkl eval web-clipper → dist/*.json
-pkf run build:properties-schemas # pkl eval properties-schemas → dist/*.json
-pkf run build:gembu              # cargo build -p gembu
-pkf run test                     # cargo test --workspace (test:gembu)
-pkf run fmt                      # nix fmt (uncached passthrough)
-pkf list                         # every task + description
+vp run build                    # all packages + gembu
+vp run build:plugin-scripts     # bun bundles src → dist/{templater,quickadd}
+vp run build:web-clipper        # pkl eval web-clipper → dist/*.json
+vp run build:properties-schemas # pkl eval properties-schemas → dist/*.json
+vp run build:gembu              # cargo build -p gembu
+vp run test                     # cargo test --workspace (test:gembu)
+vp run fmt                      # vp fmt + nix fmt (uncached passthrough)
+vp run                          # interactive task picker / lists tasks
 ```
 
-`pkf affected --since=origin/main` runs only the tasks whose `inputs`
-changed — useful in CI. Each task's `cmd` invokes the underlying tool
-directly (`bun run ./build.ts`, `pkl eval …`, `cargo …`); there are no
-`package.json` build scripts.
+The content-addressed cache makes unchanged tasks instant. Each task's
+`command` invokes the underlying tool directly (`bun run ./build.ts`,
+`pkl eval …`, `cargo …`); there are no `package.json` build scripts.
 
 ## Architecture
 
@@ -85,13 +84,32 @@ directly (`bun run ./build.ts`, `pkl eval …`, `cargo …`); there are no
 - **rust-overlay** pins the Rust toolchain (cargo/rustc/clippy/rustfmt +
   rust-analyzer); **crane** builds `gembu` with its dependency tree cached
   separately.
-- **treefmt-nix** is the single formatter: `rustfmt` (edition 2024), `oxfmt`
-  (nixpkgs; reads `.oxfmtrc.json`), `pkl format`, `nixfmt`. `**/dist/**` is
-  excluded.
-- **git-hooks.nix** pre-commit hooks: `treefmt`, `oxlint` (nixpkgs; reads
-  `.oxlintrc.json`), `clippy`, `cargo test`, `gitleaks`. `dist/` is excluded
-  from every hook. Hooks need project deps so they run at commit time in the
-  dev shell, not in a hermetic `nix flake check`.
+- **treefmt-nix** formats the non-JS tree via `nix fmt`: `rustfmt` (edition
+  2024), `pkl format`, `nixfmt`. `**/dist/**` is excluded. TypeScript
+  formatting/linting is owned by Vite+ (`vp fmt` / `vp check`), not treefmt.
+- **Commit hooks** are owned by Vite+ (`vp staged`, configured under `staged`
+  in `vite.config.ts`; installed by `vp config` into `.vite-hooks/`). git-hooks.nix
+  has been retired. The pre-commit checks: `vp check --fix` (TS fmt/lint/types),
+  `cargo fmt`/`clippy -D warnings`/`cargo test` on `*.rs`, `nix fmt` on
+  `*.{pkl,nix}`, `gitleaks` over the staged set, and a per-package dist-sync
+  guard that rebuilds `dist/` and fails if it differs from what is staged.
 - `dist/` artifacts are committed but never formatted/linted.
 - Shared TypeScript dependency versions are pinned via the Bun workspace
   catalog in the root `package.json`.
+
+<!--VITE PLUS START-->
+
+# Using Vite+, the Unified Toolchain for the Web
+
+This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+
+Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
+
+## Review Checklist
+
+- [ ] Run `vp install` after pulling remote changes and before getting started.
+- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
+- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
+- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
+
+<!--VITE PLUS END-->

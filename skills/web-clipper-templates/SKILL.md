@@ -10,7 +10,7 @@ Sources are PKL in `packages/web-clipper/src/` (shared props in `props.pkl`);
 verify against `dist/*.json`:
 
 ```sh
-pkf run build:web-clipper
+vp run build:web-clipper
 ```
 
 ## Quotes: normal string with `\"`

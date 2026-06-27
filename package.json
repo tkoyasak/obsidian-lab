@@ -6,9 +6,30 @@
       "packages/*"
     ],
     "catalog": {
-      "@types/bun": "1.3.12",
-      "@types/node": "25.6.0",
-      "obsidian": "1.12.3"
+      "@types/bun": "1.3.14",
+      "@types/node": "26.0.0",
+      "obsidian": "1.13.1",
+      "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
+      "vitest": "4.1.9",
+      "vite-plus": "0.2.1"
+    }
+  },
+  "scripts": {
+    "prepare": "vp config"
+  },
+  "devDependencies": {
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "overrides": {
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.3.14",
+      "onFail": "warn"
     }
   }
 }

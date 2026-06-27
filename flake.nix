@@ -1,15 +1,11 @@
 {
-  description = "Obsidian.md customizations — monorepo tooling and git hooks";
+  description = "Personal Obsidian.md customizations and supporting tooling";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    git-hooks = {
-      url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -26,7 +22,6 @@
       systems = [ "x86_64-darwin" ];
 
       imports = [
-        inputs.git-hooks.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
 
@@ -46,16 +41,6 @@
               "rust-analyzer"
             ];
           };
-          # `cargo fmt` / `cargo clippy` dispatch to sibling binaries
-          # (rustfmt, clippy-driver), so the whole toolchain must be on PATH.
-          rustBinPath = pkgs.lib.makeBinPath [ rustToolchain ];
-          cargoHook =
-            name: cmd:
-            "${pkgs.writeShellScript name ''
-              export PATH=${rustBinPath}:$PATH
-              exec ${cmd}
-            ''}";
-
           # crane uses the pinned toolchain rather than the one from nixpkgs.
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
           # Shared between the deps-only and final builds. Only the Rust files
@@ -78,11 +63,24 @@
           # sources doesn't recompile the dependency tree.
           gembuDeps = craneLib.buildDepsOnly gembuArgs;
 
-          # Project-local helpers (see lib/default.nix).
-          lib = import ./lib {
-            inherit pkgs;
-            root = ./packages;
-          };
+          # Redistribute a package's prebuilt files into $out (no build). The
+          # attr name doubles as the source dir packages/<name>; `dist` reads
+          # dist/, `glob` selects files, `executable` chmods them (raycast).
+          redistribute =
+            {
+              glob ? "*",
+              executable ? false,
+              dist ? false,
+            }:
+            name:
+            let
+              src = ./packages + "/${name}" + (pkgs.lib.optionalString dist "/dist");
+            in
+            pkgs.runCommand name { } ''
+              mkdir -p $out
+              cp -R ${src}/${glob} $out/
+              ${pkgs.lib.optionalString executable "chmod +x $out/*"}
+            '';
         in
         {
           # Bring rust-overlay's `rust-bin` into `pkgs` for this system.
@@ -91,15 +89,12 @@
             overlays = [ inputs.rust-overlay.overlays.default ];
           };
 
-          # treefmt — single source of truth for formatting, used by the
-          # pre-commit hook above and by `nix fmt`. oxfmt (from nixpkgs) still
-          # reads `.oxfmtrc.json` for dist ignore and import sort.
+          # treefmt formats rust/pkl/nix via `nix fmt`; TS is handled by Vite+.
           treefmt = {
             projectRootFile = "flake.nix";
             # Built artifacts are committed but never formatted.
             settings.global.excludes = [ "**/dist/**" ];
             programs.nixfmt.enable = true;
-            programs.oxfmt.enable = true;
             programs.rustfmt = {
               enable = true;
               package = rustToolchain;
@@ -117,81 +112,25 @@
             };
           };
 
-          # git-hooks.nix — replaces the former `prek` setup. Tools are
-          # referenced by store path so hooks resolve regardless of PATH;
-          # the bun/cargo hooks additionally need project deps
-          # (node_modules / crate cache), so they are meant to run at commit
-          # time inside the devShell, not in a hermetic `nix flake check`.
-          # dist holds committed build artifacts — exclude from every hook so
-          # tools aren't handed batches that are entirely ignored.
-          pre-commit.settings = {
-            excludes = [ "(^|/)dist/" ];
-            hooks = {
-              treefmt.enable = true;
-              oxlint.enable = true;
-
-              gitleaks = {
-                enable = true;
-                entry = "${pkgs.gitleaks}/bin/gitleaks git --pre-commit --redact --staged";
-                pass_filenames = false;
-                always_run = true;
-              };
-
-              # Rust (cargo workspace) — only run when *.rs files are staged.
-              # clippy is git-hooks.nix's built-in (wraps cargo-clippy with cargo
-              # on PATH); cargo-test has no built-in, so it stays a cargoHook.
-              clippy = {
-                enable = true;
-                packageOverrides = {
-                  cargo = rustToolchain;
-                  clippy = rustToolchain;
-                };
-                settings = {
-                  denyWarnings = true;
-                  extraArgs = "--workspace --all-targets";
-                };
-              };
-              cargo-test = {
-                enable = true;
-                name = "cargo test";
-                entry = cargoHook "cargo-test" "cargo test --workspace";
-                types = [ "rust" ];
-                pass_filenames = false;
-              };
-
-              # One guard per dist-producing package, fired only when that
-              # package's own files are staged. Mirrors Taskfile.pkl's
-              # build:<package> tasks.
-              dist-plugin-scripts = lib.distSyncHook "plugin-scripts";
-              dist-web-clipper = lib.distSyncHook "web-clipper";
-              dist-properties-schemas = lib.distSyncHook "properties-schemas";
-            };
-          };
-
-          # Redistribute-only packages; mapAttrs feeds each attr name into its
-          # builder, so the name is never written twice.
-          #   plugin-scripts — build.ts emits dist/{templater,quickadd}
-          #     (committed); both are redistributed together.
-          #   css-snippets / raycast-scripts — no build step, sources directly.
-          #   web-clipper / properties-schemas — pkl eval generates the
-          #     committed dist/*.json.
+          # Redistribute-only packages; mapAttrs passes each attr name to its
+          # builder as the source dir. gembu is the only built package (crane).
           packages =
             pkgs.lib.mapAttrs (name: build: build name) {
-              plugin-scripts = lib.redistribute {
+              plugin-scripts = redistribute {
                 dist = true;
               };
-              css-snippets = lib.redistribute {
+              css-snippets = redistribute {
                 glob = "*.css";
               };
-              raycast-scripts = lib.redistribute {
+              raycast-scripts = redistribute {
                 glob = "*.sh";
                 executable = true;
               };
-              web-clipper = lib.redistribute {
+              web-clipper = redistribute {
                 glob = "*.json";
                 dist = true;
               };
-              properties-schemas = lib.redistribute {
+              properties-schemas = redistribute {
                 glob = "*.json";
                 dist = true;
               };
@@ -202,23 +141,24 @@
               default = config.packages.gembu;
             };
 
-          # `nix develop` / direnv — shellHook installs the git pre-commit hook.
+          # `nix develop` / direnv. The shellHook installs Vite+ commit hooks
+          # (`vp config`); `vp` is a global CLI, not provided here.
           devShells.default = pkgs.mkShellNoCC {
-            inputsFrom = [ config.pre-commit.devShell ];
             packages =
               with pkgs;
               [
                 # bun
                 gitleaks
                 # nodejs
-                oxfmt
-                oxlint
                 pkl
                 typescript-go
               ]
               ++ [
                 rustToolchain
               ];
+            shellHook = ''
+              command -v vp >/dev/null 2>&1 && vp config --no-agent >/dev/null 2>&1 || true
+            '';
           };
         };
     };
