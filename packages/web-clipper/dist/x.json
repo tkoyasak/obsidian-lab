@@ -2,7 +2,7 @@
   "schemaVersion": "0.1.0",
   "name": "X (Twitter) Post",
   "behavior": "create",
-  "noteContentFormat": "\n![(embed)]({{url}})\n\n## Content\n\n{{content}}\n",
+  "noteContentFormat": "\n![Post on X]({{url}})\n\n{{selector:article[tabindex=\"-1\"] div[data-testid=\"tweetText\"]|first}}\n\n{{selector:article[tabindex=\"-1\"] a[href^=\"https://t.co/\"]?href|unique|join:\"\\n\"}}\n",
   "properties": [
     {
       "name": "created",
@@ -26,7 +26,7 @@
     },
     {
       "name": "thumbnail",
-      "value": "{{selector:img[alt=\"画像\"]?src|first}}",
+      "value": "{{selector:article[tabindex=\"-1\"] img[alt=\"画像\"]?src|first}}",
       "type": "text"
     },
     {
@@ -36,7 +36,7 @@
     },
     {
       "name": "categories",
-      "value": "[[Clippings]], [[X (Twitter) Posts]]",
+      "value": "[[Clippings]]",
       "type": "multitext"
     },
     {
@@ -56,12 +56,12 @@
     },
     {
       "name": "authors",
-      "value": "{{selector:div[data-testid=\"User-Name\"] span|first}}",
+      "value": "{{selector:article[tabindex=\"-1\"] div[data-testid=\"User-Name\"] span|first}}",
       "type": "multitext"
     },
     {
       "name": "published",
-      "value": "{{published|date}}",
+      "value": "{{selector:article[tabindex=\"-1\"] time?datetime|first}}",
       "type": "datetime"
     },
     {
@@ -73,6 +73,6 @@
   "triggers": [
     "/^https:\\/\\/x\\.com\\/[A-Za-z0-9_]+\\/status\\/\\d+$/"
   ],
-  "noteNameFormat": "{{title}} - {{published|date:\"YYYY-MM-DD\"}}",
+  "noteNameFormat": "{{selector:article[tabindex=\"-1\"] div[data-testid=\"tweetText\"]|first|slice:0,100}} - @{{url|split:\"/\"|slice:3,-2}} {{published|date:\"YYYY-MM-DD\"}}",
   "path": "Clippings"
 }

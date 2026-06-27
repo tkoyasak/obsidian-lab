@@ -7,27 +7,24 @@ name = "X (Twitter) Post"
 noteContentFormat =
   """
 
-  ![(embed)]({{url}})
+  ![Post on X]({{url}})
 
-  ## Content
+  {{selector:article[tabindex="-1"] div[data-testid="tweetText"]|first}}
 
-  {{content}}
+  {{selector:article[tabindex="-1"] a[href^="https://t.co/"]?href|unique|join:"\\n"}}
 
   """
 
 properties =
   (props.common) {
     ["thumbnail"] {
-      value = "{{selector:img[alt=\"画像\"]?src|first}}"
-    }
-    ["categories"] {
-      value = "[[Clippings]], [[X (Twitter) Posts]]"
-    }
-    ["published"] {
-      value = "{{published|date}}"
+      value = "{{selector:article[tabindex=\"-1\"] img[alt=\"画像\"]?src|first}}"
     }
     ["authors"] {
-      value = "{{selector:div[data-testid=\"User-Name\"] span|first}}"
+      value = "{{selector:article[tabindex=\"-1\"] div[data-testid=\"User-Name\"] span|first}}"
+    }
+    ["published"] {
+      value = "{{selector:article[tabindex=\"-1\"] time?datetime|first}}"
     }
     ["handle"] {
       name = "handle"
@@ -40,4 +37,5 @@ properties =
 
 triggers = List(#"/^https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/\d+$/"#)
 
-noteNameFormat = "{{title}} - {{published|date:\"YYYY-MM-DD\"}}"
+noteNameFormat =
+  #"{{selector:article[tabindex="-1"] div[data-testid="tweetText"]|first|slice:0,100}} - @{{url|split:"/"|slice:3,-2}} {{published|date:"YYYY-MM-DD"}}"#
