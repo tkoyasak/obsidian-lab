@@ -380,11 +380,44 @@ local clippings: JsonSchema = (base) {
 
 local jsonRenderer = (JsonSchema.output.renderer) as JsonRenderer
 
+// Single source of truth: which vault directory each schema validates. One
+// entry drives both the schema file (dist/<dir lowercased>.json) and the gembu
+// route below — adding a validated directory is a one-line edit here.
+local schemaByDir: Mapping<String, JsonSchema> = new {
+  ["Daily"] = daily
+  ["Notes"] = notes
+  ["References"] = references
+  ["Clippings"] = clippings
+}
+
+local function schemaFile(dir: String): String = "\(dir.toLowerCase()).json"
+
+// gembu routing config. Schema paths are siblings (resolved by gembu relative
+// to the config's own directory), so the whole set lives in one `.gembu/` dir
+// in the vault: this renders to config.json, installed as `.gembu/config.json`
+// alongside the schema files.
+local gembuConfig = new {
+  rules = new Listing {
+    for (dir, _schema in schemaByDir) {
+      new {
+        include = "\(dir)/**/*.md"
+        schema = schemaFile(dir)
+      }
+    }
+  }
+}
+
 output {
   files {
-    ["daily.json"] { value = daily; renderer = jsonRenderer }
-    ["notes.json"] { value = notes; renderer = jsonRenderer }
-    ["references.json"] { value = references; renderer = jsonRenderer }
-    ["clippings.json"] { value = clippings; renderer = jsonRenderer }
+    for (dir, schema in schemaByDir) {
+      [schemaFile(dir)] {
+        value = schema
+        renderer = jsonRenderer
+      }
+    }
+    ["config.json"] {
+      value = gembuConfig
+      renderer = jsonRenderer
+    }
   }
 }

@@ -20,12 +20,12 @@ struct Config {
 struct Rule {
     /// Glob matched against each input path (e.g. `Daily/**/*.md`).
     include: String,
-    /// Schema path, resolved relative to the current working directory.
+    /// Schema path, resolved relative to the config file's directory.
     schema: PathBuf,
 }
 
 /// Config locations searched, in order, when `--config` is not given.
-const DEFAULT_CONFIG_PATHS: [&str; 2] = [".config/gembu.json", ".gembu.json"];
+const DEFAULT_CONFIG_PATHS: [&str; 2] = [".gembu/config.json", ".gembu.json"];
 
 type BoxError = Box<dyn std::error::Error>;
 
@@ -80,6 +80,10 @@ fn run() -> Result<bool, BoxError> {
             })?,
     };
     let config: Config = serde_json::from_str(&std::fs::read_to_string(&config_path)?)?;
+    // Schema paths are resolved relative to the config file's directory, so a
+    // config in `.gembu/` can reference `daily.json` as a sibling regardless of
+    // the working directory gembu runs from.
+    let config_dir = config_path.parent().unwrap_or(Path::new(""));
 
     // Compile each rule's glob once, up front; this rejects an invalid pattern
     // before any file is read. The first matching rule wins.
@@ -97,11 +101,11 @@ fn run() -> Result<bool, BoxError> {
         let Some(idx) = matchers.iter().position(|m| m.is_match(file)) else {
             continue; // no rule covers this path — not ours to validate
         };
-        let schema_path = &config.rules[idx].schema;
+        let schema_path = config_dir.join(&config.rules[idx].schema);
 
         let validator = match validators.entry(schema_path.clone()) {
             Entry::Occupied(e) => e.into_mut(),
-            Entry::Vacant(e) => e.insert(compile(schema_path)?),
+            Entry::Vacant(e) => e.insert(compile(&schema_path)?),
         };
 
         let frontmatter =

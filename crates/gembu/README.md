@@ -23,21 +23,21 @@ gembu [--config <gembu.json>] <file>...
   Daily/2026-05-21.md: "secret" is not one of "private", "public" or "unlisted" (at /visibility)
   ```
 
-If `--config` is omitted, gembu looks for `.config/gembu.json` then
+If `--config` is omitted, gembu looks for `.gembu/config.json` then
 `.gembu.json` in the current directory.
 
 ## Config
 
 JSON, an array of `rules` entries. `include` is a glob matched against each
-input path; `schema` is a path resolved relative to the current working
-directory.
+input path; `schema` is a path resolved relative to the config file's own
+directory (so a config in `.gembu/` references its sibling schemas by name).
 
 ```json
 {
   "rules": [
-    { "include": "Daily/**/*.md", "schema": ".schema/daily.json" },
-    { "include": "Notes/**/*.md", "schema": ".schema/notes.json" },
-    { "include": "References/**/*.md", "schema": ".schema/references.json" }
+    { "include": "Daily/**/*.md", "schema": "daily.json" },
+    { "include": "Notes/**/*.md", "schema": "notes.json" },
+    { "include": "References/**/*.md", "schema": "references.json" }
   ]
 }
 ```

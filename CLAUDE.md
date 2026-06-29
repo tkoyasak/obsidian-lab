@@ -73,9 +73,11 @@ The content-addressed cache makes unchanged tasks instant. Each task's
 - Each `amends`/uses a PKL package declared in its `PklProject`
   (`PklProject.deps.json` pins checksums); `pkl eval` generates the committed
   `dist/*.json`.
-- `properties-schemas` produces the `daily`/`notes`/`references` schemas that
-  `gembu` validates Markdown against. `web-clipper` templates reference
-  `unique_note()` from `plugin-scripts` (linked at the Obsidian layer).
+- `properties-schemas` produces the `daily`/`notes`/`references`/`clippings`
+  schemas that `gembu` validates Markdown against, plus the `config.json` gembu
+  routes by; a `schemaByDir` table is the single source of truth driving both.
+  The vault syncs the set into one `.gembu/` dir. `web-clipper` templates
+  reference `unique_note()` from `plugin-scripts` (linked at the Obsidian layer).
 - Property values containing `\"` use PKL raw strings (`#"..."#`).
 
 ## Tooling (Nix flake)

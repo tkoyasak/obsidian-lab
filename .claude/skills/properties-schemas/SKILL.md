@@ -5,13 +5,13 @@ description: Use when editing packages/properties-schemas/generate.pkl — propa
 
 # Properties schemas
 
-`generate.pkl` produces the frontmatter JSON Schemas (`dist/{daily,notes,references,clippings}.json`) that `gembu` validates the vault's Markdown against. Edit the PKL, never the generated JSON.
+`generate.pkl` produces the frontmatter JSON Schemas (`dist/{daily,notes,references,clippings}.json`) that `gembu` validates the vault's Markdown against, plus `dist/config.json` — the gembu routing config. The vault syncs the whole set into one `.gembu/` dir. Edit the PKL, never the generated JSON.
 
 ## Model: directory × category
 
 Two axes, both independent of how a note is created:
 
-- **Directory** = the schema unit. `gembu` routes each path to one schema via the vault's `.gembu.json` (`Daily/`→daily, `Notes/`→notes, `References/`→references, `Clippings/`→clippings). One `output` file per directory.
+- **Directory** = the schema unit. `gembu` routes each path to one schema via `.gembu/config.json` in the vault (`Daily/`→daily, `Notes/`→notes, `References/`→references, `Clippings/`→clippings). One `output` file per directory.
 - **Category** = the variation within a directory. A `[[X]]` in `categories` fires a **conditional** (`if categories contains "[[X]]" then …`). One directory can hold several categories — Clippings/ holds both `[[Clippings]]` and `[[Highlight]]`.
 
 Note creators — Templater, QuickAdd, the daily-note plugin, Web Clipper, and whatever comes next — are an open-ended set of **inputs** flowing many-to-one into these cells. The schema never knows who created a note. **Never enumerate creators**; reason only in directory × category.
@@ -27,13 +27,13 @@ A new template is **not** the trigger — it usually needs no schema edit. The t
 | New category carrying type-specific required fields                             | add one `xDomain` + `categoryConditional`, compose into the directory's `allOf` |
 | Field added / removed / retyped on an existing category                         | edit that `xDomain` block                                                       |
 | Property constraint change (enum / nullability / pattern)                       | edit the property in `base` or the relevant domain                              |
-| A directory that should now be validated                                        | new `output` file here, plus a `.gembu.json` rule in the vault                  |
+| A directory that should now be validated                                        | add a `schemaByDir` entry — emits both the schema file and its gembu route      |
 
 ## Editing generate.pkl
 
 - Build nullable scalars with `nullableOf("string")`; amend for `format` / `pattern` / `minimum`. The renderer emits keys in a canonical order, so amend order is irrelevant.
 - One category = one `xDomain` (a plain `Schema`) wrapped by `categoryConditional(comment, "[[X]]", xDomain)`. `categorizedAs` supplies the shared `if` guard.
-- Compose conditionals into a directory with `(base) { allOf { … } }`. A new directory adds a line under `output.files`.
+- Compose conditionals into a directory with `(base) { allOf { … } }`, then add it to `schemaByDir` — that one directory→schema entry is the SSOT that emits both `dist/<dir>.json` and the directory's route in `dist/config.json`.
 
 ## Verify
 
@@ -49,8 +49,7 @@ Run `vp run build:properties-schemas`, then:
 The vault consumes this repo as a flake input, so a schema change reaches notes only after a release:
 
 1. obsidian-lab: commit + push.
-2. vault: `nix flake update obsidian-lab`, then `nix develop` — resyncs `.schema/*.json` by wildcard, so new files are included automatically.
-3. vault: add the `.gembu.json` rule **after** the resync. Adding it first points gembu at a schema that is not there yet.
+2. vault: `nix flake update obsidian-lab`, then `nix develop` — resyncs the `.gembu/` dir (schemas + `config.json`) by wildcard, so a new schema and its routing rule ship together. Changing gembu's own behavior (config discovery, path resolution) ships through the same flake bump.
 
 ## Gotchas
 

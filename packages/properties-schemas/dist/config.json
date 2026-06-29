@@ -1,0 +1,20 @@
+{
+  "rules": [
+    {
+      "include": "Daily/**/*.md",
+      "schema": "daily.json"
+    },
+    {
+      "include": "Notes/**/*.md",
+      "schema": "notes.json"
+    },
+    {
+      "include": "References/**/*.md",
+      "schema": "references.json"
+    },
+    {
+      "include": "Clippings/**/*.md",
+      "schema": "clippings.json"
+    }
+  ]
+}
