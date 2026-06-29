@@ -4,25 +4,57 @@ import "@json_schema/JsonSchema.pkl"
 
 local draft202012: String = "https://json-schema.org/draft/2020-12/schema"
 
+// ---- helpers ----------------------------------------------------------------
+
+// A nullable scalar: `type` is [t, "null"]. Amend the result to add `format`,
+// `pattern`, `minimum`, … — the JsonSchema renderer emits keys in a canonical
+// order, so amend order does not affect the rendered JSON.
+local function nullableOf(t: JsonSchema.JsonSchemaTypeName): JsonSchema.Schema = new {
+  type = new Listing<JsonSchema.JsonSchemaTypeName> { t; "null" }
+}
+
+local nullableString: JsonSchema.Schema = nullableOf("string")
+
+local nullableDate: JsonSchema.Schema = (nullableOf("string")) {
+  format = "date"
+}
+
 local dateString: JsonSchema.Schema = new {
   type = "string"
   format = "date"
 }
+
+// The `if` guard shared by every category conditional: "categories contains
+// the wiki link [[X]]".
+local function categorizedAs(tag: String): JsonSchema.Schema = new {
+  required { "categories" }
+  properties {
+    ["categories"] {
+      contains { `const` = tag }
+    }
+  }
+}
+
+// A category's domain rules: "if categorized as [[X]], then `domain`". This is
+// the unit of change — one block per category, composed into whichever
+// directory schema(s) the category appears in.
+local function categoryConditional(
+  comment: String,
+  tag: String,
+  domain: JsonSchema.Schema,
+): JsonSchema.Schema = new {
+  $comment = comment
+  `if` = categorizedAs(tag)
+  then = domain
+}
+
+// ---- common base ------------------------------------------------------------
 
 local tidString: JsonSchema.Schema = new {
   $comment =
     "AT Protocol TID: 13 chars, base32-sortable, high bit 0. See <https://atproto.com/specs/tid>."
   type = "string"
   pattern = #"^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$"#
-}
-
-local nullableString: JsonSchema.Schema = new {
-  type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
-}
-
-local nullableDate: JsonSchema.Schema = new {
-  type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
-  format = "date"
 }
 
 local tagList: JsonSchema.Schema = new {
@@ -68,8 +100,7 @@ local base: JsonSchema = new {
       type = "string"
       enum { "private"; "public"; "unlisted" }
     }
-    ["thumbnail"] {
-      type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+    ["thumbnail"] = (nullableOf("string")) {
       format = "uri-reference"
     }
     ["description"] = nullableString
@@ -78,137 +109,233 @@ local base: JsonSchema = new {
   }
 }
 
-local taskConditional: JsonSchema.Schema = new {
-  $comment =
-    "Notes categorized as [[Task]] follow the TaskMD format. See `vault/Notes/How I manage tasks.md`."
-  `if` {
-    required { "categories" }
-    properties {
-      ["categories"] {
-        contains { `const` = "[[Task]]" }
+// ---- category conditionals --------------------------------------------------
+
+local taskDomain: JsonSchema.Schema = new {
+  required {
+    "project"
+    "status"
+    "started"
+    "done"
+    "review"
+    "due"
+    "recurrence"
+    "contexts"
+    "waiting_for"
+    "estimate"
+    "priority"
+  }
+  properties {
+    ["project"] = nullableString
+    ["status"] {
+      type = "string"
+      enum {
+        "Inbox"
+        "Icebox"
+        "Planned"
+        "In Progress"
+        "On Hold"
+        "Done"
+        "Cancelled"
       }
     }
-  }
-  then {
-    required {
-      "project"
-      "status"
-      "started"
-      "done"
-      "review"
-      "due"
-      "recurrence"
-      "contexts"
-      "waiting_for"
-      "estimate"
-      "priority"
-    }
-    properties {
-      ["project"] = nullableString
-      ["status"] {
+    ["started"] = nullableDate
+    ["done"] = nullableDate
+    ["review"] = nullableDate
+    ["due"] = nullableDate
+    ["recurrence"] {
+      $comment =
+        "Recurrence cycle: `Daily` or capitalized weekday names. Multiple allowed (e.g. [Monday, Thursday])."
+      type = "array"
+      items {
         type = "string"
         enum {
-          "Inbox"
-          "Icebox"
-          "Planned"
-          "In Progress"
-          "On Hold"
-          "Done"
-          "Cancelled"
+          "Daily"
+          "Sunday"
+          "Monday"
+          "Tuesday"
+          "Wednesday"
+          "Thursday"
+          "Friday"
+          "Saturday"
         }
       }
-      ["started"] = nullableDate
-      ["done"] = nullableDate
-      ["review"] = nullableDate
-      ["due"] = nullableDate
-      ["recurrence"] {
-        $comment =
-          "Recurrence cycle: `Daily` or capitalized weekday names. Multiple allowed (e.g. [Monday, Thursday])."
-        type = "array"
-        items {
-          type = "string"
-          enum {
-            "Daily"
-            "Sunday"
-            "Monday"
-            "Tuesday"
-            "Wednesday"
-            "Thursday"
-            "Friday"
-            "Saturday"
-          }
-        }
-        uniqueItems = true
-      }
-      ["contexts"] {
-        type = "array"
-        items {
-          type = "string"
-        }
-        uniqueItems = true
-      }
-      ["waiting_for"] = nullableString
-      ["estimate"] = nullableString
-      ["priority"] {
-        type = "integer"
-        minimum = 0
-      }
+      uniqueItems = true
     }
-    allOf {
-      new {
-        $comment = "`review` is required for `Planned` and `On Hold`."
-        `if` {
-          required { "status" }
-          properties {
-            ["status"] {
-              enum { "Planned"; "On Hold" }
-            }
+    ["contexts"] {
+      type = "array"
+      items {
+        type = "string"
+      }
+      uniqueItems = true
+    }
+    ["waiting_for"] = nullableString
+    ["estimate"] = nullableString
+    ["priority"] {
+      type = "integer"
+      minimum = 0
+    }
+  }
+  allOf {
+    new {
+      $comment = "`review` is required for `Planned` and `On Hold`."
+      `if` {
+        required { "status" }
+        properties {
+          ["status"] {
+            enum { "Planned"; "On Hold" }
           }
         }
-        then {
-          required { "review" }
-          properties {
-            ["review"] = dateString
-          }
+      }
+      then {
+        required { "review" }
+        properties {
+          ["review"] = dateString
         }
       }
     }
   }
 }
 
-local readingConditional: JsonSchema.Schema = new {
-  $comment =
-    "Notes categorized as [[Reading]] track a book being read; they must also be [[Task]]. See `vault/Templates/Reading Template.md`."
-  `if` {
-    required { "categories" }
-    properties {
-      ["categories"] {
-        contains { `const` = "[[Reading]]" }
-      }
+local taskConditional: JsonSchema.Schema =
+  categoryConditional(
+    "Notes categorized as [[Task]] follow the TaskMD format. See `vault/Notes/How I manage tasks.md`.",
+    "[[Task]]",
+    taskDomain,
+  )
+
+local readingDomain: JsonSchema.Schema = new {
+  required { "categories"; "book"; "rating" }
+  properties {
+    ["categories"] {
+      $comment = "[[Reading]] implies [[Task]] (reuses the task machinery)."
+      contains { `const` = "[[Task]]" }
     }
-  }
-  then {
-    required { "categories"; "book"; "rating" }
-    properties {
-      ["categories"] {
-        $comment = "[[Reading]] implies [[Task]] (reuses the task machinery)."
-        contains { `const` = "[[Task]]" }
-      }
-      ["book"] {
-        $comment =
-          "Wiki link to the bibliographic [[Book]] note in References/. Required, non-null."
-        type = "string"
-        pattern = #"^\[\[.+\]\]$"#
-      }
-      ["rating"] {
-        $comment = "Loose 1-5 indicator; null until rated. No fixed anchor definitions."
-        type = new Listing<JsonSchema.JsonSchemaTypeName> { "integer"; "null" }
-        minimum = 1
-        maximum = 5
-      }
+    ["book"] {
+      $comment = "Wiki link to the bibliographic [[Book]] note in References/. Required, non-null."
+      type = "string"
+      pattern = #"^\[\[.+\]\]$"#
+    }
+    ["rating"] {
+      $comment = "Loose 1-5 indicator; null until rated. No fixed anchor definitions."
+      type = new Listing<JsonSchema.JsonSchemaTypeName> { "integer"; "null" }
+      minimum = 1
+      maximum = 5
     }
   }
 }
+
+local readingConditional: JsonSchema.Schema =
+  categoryConditional(
+    "Notes categorized as [[Reading]] track a book being read; they must also be [[Task]]. See `vault/Templates/Reading Template.md`.",
+    "[[Reading]]",
+    readingDomain,
+  )
+
+local bookDomain: JsonSchema.Schema = new {
+  required {
+    "isbn"
+    "ndl_url"
+    "title"
+    "authors"
+    "translaters"
+    "publisher"
+    "published"
+    "language"
+    "ndc10"
+  }
+  properties {
+    ["isbn"] {
+      $comment = "ISBN-13: 13 digits, prefix 978 or 979."
+      type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+      pattern = #"^97[89][0-9]{10}$"#
+    }
+    ["ndl_url"] = (nullableOf("string")) {
+      format = "uri"
+    }
+    ["title"] {
+      type = "string"
+    }
+    ["authors"] {
+      type = "array"
+      items {
+        type = "string"
+      }
+      uniqueItems = true
+    }
+    ["translaters"] {
+      type = "array"
+      items {
+        type = "string"
+      }
+      uniqueItems = true
+    }
+    ["publisher"] = nullableString
+    ["published"] = nullableDate
+    ["language"] = nullableString
+    ["ndc10"] = nullableString
+  }
+}
+
+local bookConditional: JsonSchema.Schema =
+  categoryConditional(
+    "References categorized as [[Book]] carry bibliographic metadata.",
+    "[[Book]]",
+    bookDomain,
+  )
+
+local clippingDomain: JsonSchema.Schema = new {
+  required { "url"; "title"; "authors"; "published" }
+  properties {
+    ["url"] {
+      type = "string"
+      format = "uri"
+    }
+    ["title"] {
+      type = "string"
+    }
+    ["authors"] {
+      type = "array"
+      items {
+        type = "string"
+      }
+      uniqueItems = true
+    }
+    ["published"] = (nullableOf("string")) {
+      format = "date-time"
+    }
+  }
+}
+
+local clippingConditional: JsonSchema.Schema =
+  categoryConditional(
+    "Clips made by the Web Clipper. Site templates may add their own fields (allowed via additionalProperties).",
+    "[[Clippings]]",
+    clippingDomain,
+  )
+
+local highlightDomain: JsonSchema.Schema = new {
+  required { "book"; "page" }
+  properties {
+    ["book"] {
+      $comment = "Wiki link to the [[Book]] being highlighted."
+      type = "string"
+      pattern = #"^\[\[.+\]\]$"#
+    }
+    ["page"] = (nullableOf("integer")) {
+      minimum = 1
+    }
+  }
+}
+
+local highlightConditional: JsonSchema.Schema =
+  categoryConditional(
+    "Notes categorized as [[Highlight]] cite a page of a [[Book]]. See `vault/Templates/Highlight Template.md`.",
+    "[[Highlight]]",
+    highlightDomain,
+  )
+
+// ---- directory schemas (gembu routes by directory) --------------------------
 
 local notes: JsonSchema = (base) {
   title = "Note frontmatter"
@@ -226,76 +353,28 @@ local daily: JsonSchema = (base) {
   }
 }
 
-local bookConditional: JsonSchema.Schema = new {
-  $comment = "References categorized as [[Book]] carry bibliographic metadata."
-  `if` {
-    required { "categories" }
-    properties {
-      ["categories"] {
-        contains { `const` = "[[Book]]" }
-      }
-    }
-  }
-  then {
-    required {
-      "isbn"
-      "ndl_url"
-      "title"
-      "authors"
-      "translaters"
-      "publisher"
-      "published"
-      "language"
-      "ndc10"
-    }
-    properties {
-      ["isbn"] {
-        $comment = "ISBN-13: 13 digits, prefix 978 or 979."
-        type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
-        pattern = #"^97[89][0-9]{10}$"#
-      }
-      ["ndl_url"] {
-        type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
-        format = "uri"
-      }
-      ["title"] {
-        type = "string"
-      }
-      ["authors"] {
-        type = "array"
-        items {
-          type = "string"
-        }
-        uniqueItems = true
-      }
-      ["translaters"] {
-        type = "array"
-        items {
-          type = "string"
-        }
-        uniqueItems = true
-      }
-      ["publisher"] = nullableString
-      ["published"] = nullableDate
-      ["language"] = nullableString
-      ["ndc10"] = nullableString
-    }
-  }
-}
-
 local references: JsonSchema = (base) {
   title = "Reference note frontmatter"
   $comment =
     "References add a `url` field. Required key; nullable value for cases where the source is offline / handwritten / oral."
   required { "url" }
   properties {
-    ["url"] {
-      type = new Listing<JsonSchema.JsonSchemaTypeName> { "string"; "null" }
+    ["url"] = (nullableOf("string")) {
       format = "uri"
     }
   }
   allOf {
     bookConditional
+  }
+}
+
+local clippings: JsonSchema = (base) {
+  title = "Clipping frontmatter"
+  $comment =
+    "Clippings/ is shared by Web Clipper clips ([[Clippings]]) and reading highlights ([[Highlight]])."
+  allOf {
+    clippingConditional
+    highlightConditional
   }
 }
 
@@ -306,5 +385,6 @@ output {
     ["daily.json"] { value = daily; renderer = jsonRenderer }
     ["notes.json"] { value = notes; renderer = jsonRenderer }
     ["references.json"] { value = references; renderer = jsonRenderer }
+    ["clippings.json"] { value = clippings; renderer = jsonRenderer }
   }
 }
