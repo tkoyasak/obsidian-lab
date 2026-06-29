@@ -41,19 +41,20 @@ strip surrounding quotes — but normal PKL strings keep the source simplest.
 
 ## multitext value format
 
-A `type = "multitext"` value is split into an array _after_ compilation. Only
-two shapes work; pick by whether a value can contain a comma:
+A `type = "multitext"` value is split into an array _after_ compilation. Columns:
+**Compiled value** = the literal string in `dist/*.json`; **PKL** = what produces it.
 
-| Compiled value                            | Result                                   | PKL                              |
-| ----------------------------------------- | ---------------------------------------- | -------------------------------- |
-| `a, b, c` (no quotes)                     | OK — split on `,` (skips `]]` wikilinks) | `"[[A]], [[B]]"` plain string    |
-| `["a", "b"]` (brackets + **real** quotes) | OK — `JSON.parse`                        | `"[\"a\", \"b\"]"` normal string |
-| `"a", "b"` (quotes, no brackets)          | BROKEN — keeps quotes → `- "\"a\""`      | —                                |
-| `[\"a\", \"b\"]` (brackets + `\"`)        | BROKEN — fails the `["…"]` check         | —                                |
+| Compiled value                            | Result                              | PKL                              |
+| ----------------------------------------- | ----------------------------------- | -------------------------------- |
+| `[[A]], [[B]]` (no quotes)                | OK — split on `,` outside `[[…]]`   | `"[[A]], [[B]]"` plain string    |
+| `["a", "b"]` (brackets + **real** quotes) | OK — `JSON.parse`                   | `"[\"a\", \"b\"]"` normal string |
+| `"a", "b"` (quotes, no brackets)          | BROKEN — keeps quotes → `- "\"a\""` | —                                |
+| `[\"a\", \"b\"]` (brackets + `\"`)        | BROKEN — fails the `["…"]` check    | —                                |
 
-The bracketed form needs **real** quotes — use a normal PKL string
-(`"[\"a\", \"b\"]"`), not a raw string. A bare `{{selector:...}}` that resolves
-to multiple values needs neither brackets nor quotes.
+Split on `,` outside `[[…]]` = a comma inside a wikilink isn't a separator
+(`shared.ts`: `split(/,(?![^\[]*\]\])/)`), so `[[Smith, John]]` stays one item.
+The bracketed form needs **real** quotes (normal PKL string, not raw). A bare
+`{{selector:...}}` resolving to multiple values needs neither brackets nor quotes.
 
 ## Official reference
 
